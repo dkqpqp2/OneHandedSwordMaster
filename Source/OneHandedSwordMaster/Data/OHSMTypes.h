@@ -3,12 +3,11 @@
 #include "CoreMinimal.h"
 #include "OHSMTypes.generated.h"
 
-UENUM(BlueprintTpye)
+UENUM(BlueprintType)
 enum class EOHSMDamageType : uint8
 {
 	Physical UMETA(DisplayName = "물리"),
-	Magic UMETA(DisplayName = "마법"),
-	True UMETA(DisplayName = "고정")
+	Magic UMETA(DisplayName = "마법")
 };
 
 USTRUCT(BlueprintType)

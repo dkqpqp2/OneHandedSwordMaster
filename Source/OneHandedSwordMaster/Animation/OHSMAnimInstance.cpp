@@ -26,7 +26,7 @@ void UOHSMAnimInstance::NativeInitializeAnimation()
 void UOHSMAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-	
+	//
 	if (Movement)
 	{
 		Velocity = Movement->Velocity;

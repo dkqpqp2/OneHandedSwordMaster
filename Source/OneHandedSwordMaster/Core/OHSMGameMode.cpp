@@ -3,6 +3,9 @@
 
 #include "OHSMGameMode.h"
 
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
+
 AOHSMGameMode::AOHSMGameMode()
 {
+	DefaultPawnClass = AOHSMPlayerCharacter::StaticClass();
 }

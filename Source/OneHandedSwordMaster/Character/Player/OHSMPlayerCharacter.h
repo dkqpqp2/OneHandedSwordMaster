@@ -40,6 +40,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> JumpAction;
 	
+// ============= 무기 시스템 =============
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class AOHSMWeaponBase> CurrentWeapon;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class AOHSMWeaponBase> WeaponClass;
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void EquipWeapon(class AOHSMWeaponBase* Weapon);
+	
+	AOHSMWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+	
 protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

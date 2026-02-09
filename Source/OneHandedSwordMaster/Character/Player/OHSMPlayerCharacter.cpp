@@ -11,6 +11,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
 
 
 // Sets default values
@@ -76,6 +77,20 @@ void AOHSMPlayerCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+	
+	if (WeaponClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+		
+		CurrentWeapon = GetWorld()->SpawnActor<AOHSMWeaponBase>(WeaponClass, SpawnParams);
+		
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->EquipToCharacter(this);
+		}
+	}
 }
 	
 
@@ -101,6 +116,16 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	{
 		UE_LOG(LogTemp, Error, TEXT("'%s' Failed to find an Enhanced Input component!"), *GetNameSafe(this));
 	}
+}
+
+void AOHSMPlayerCharacter::EquipWeapon(class AOHSMWeaponBase* Weapon)
+{
+	if (!Weapon)
+	{
+		return;
+	}
+	CurrentWeapon = Weapon;
+	Weapon->EquipToCharacter(this);
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)

@@ -40,6 +40,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> JumpAction;
 	
+	// 공격
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> AttackAction;
+	
 // ============= 무기 시스템 =============
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
@@ -54,11 +58,18 @@ public:
 	
 	AOHSMWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
 	
+// 공격 컴포넌트
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMCombatComponent> CombatComponent;
+	
 protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void Attack();
 	
 public:
 	TObjectPtr<class USpringArmComponent> GetCameraBoom() const { return CameraBoom; }
 	TObjectPtr<class UCameraComponent> GetFollowCamera() const { return FollowCamera; }
+	TObjectPtr<class UOHSMCombatComponent> GetCombatComponent() const { return CombatComponent; }
 };

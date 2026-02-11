@@ -20,12 +20,12 @@ AOHSMWeaponBase::AOHSMWeaponBase()
 	TraceStart = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TraceStart"));
 	TraceStart->SetupAttachment(WeaponMesh);
 	
-	TraceStart->SetRelativeLocation(FVector(0.0f, 0.0f, 10.0f));
+	TraceStart->SetRelativeLocation(FVector(20.0f, 0.0f, 0.0f));
 	
 	TraceEnd = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TraceEnd"));
 	TraceEnd->SetupAttachment(WeaponMesh);
 	
-	TraceEnd->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f));
+	TraceEnd->SetRelativeLocation(FVector(120.0f, 0.0f, 0.0f));
 
 }
 

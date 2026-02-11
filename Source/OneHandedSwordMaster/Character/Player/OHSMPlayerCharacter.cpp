@@ -11,6 +11,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMCombatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
 
 
@@ -63,6 +64,8 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 		GetMesh()->SetAnimInstanceClass(AnimInstanceClassRef.Class);
 	}
 	
+	// 공격 컴포넌트 추가
+	CombatComponent = CreateDefaultSubobject<UOHSMCombatComponent>(TEXT("CombatComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -111,6 +114,9 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// 점프
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		
+		// 공격
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::Attack);
 	}
 	else
 	{
@@ -163,6 +169,14 @@ void AOHSMPlayerCharacter::Look(const FInputActionValue& Value)
         
 		// Pitch (상하) 회전 추가
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AOHSMPlayerCharacter::Attack()
+{
+	if (CombatComponent)
+	{
+		CombatComponent->PerformBasicAttack();
 	}
 }
 

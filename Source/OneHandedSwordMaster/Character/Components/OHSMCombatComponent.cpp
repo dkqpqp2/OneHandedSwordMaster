@@ -107,7 +107,13 @@ void UOHSMCombatComponent::PerformBasicAttack()
 		if (CurrentComboIndex >= BasicAttackRows.Num())
 		{
 			// 마지막 콤보 후 처음으로
-			ResetCombo();
+			GetWorld()->GetTimerManager().SetTimer(
+				ComboResetTimerHandle,
+				this,
+				&UOHSMCombatComponent::ResetCombo,
+				1.5f,
+				false
+			);
 			return;
 		}
 		bCanReceiveInput = false;
@@ -121,6 +127,16 @@ void UOHSMCombatComponent::PerformBasicAttack()
 	
 	bIsAttacking = true;
 	CurrentMontage = ComboData->AnimationMontage;
+	
+	if (OwnerCharacter)
+	{
+		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
+		if (Movement)
+		{
+			Movement->MaxWalkSpeed = 0.0f;
+			Movement->MaxAcceleration = 0.0f;
+		}
+	}
 	
 	if (AnimInstance)
 	{
@@ -171,6 +187,17 @@ void UOHSMCombatComponent::ResetCombo()
 	bCanNextCombo = false;
 	bCanReceiveInput = false;
 	bIsAttacking = false;
+	
+	if (OwnerCharacter)
+	{
+		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
+		if (Movement)
+		{
+			// 이동 활성화
+			Movement->MaxWalkSpeed = 500.0f;
+			Movement->MaxAcceleration = 2048.0f;
+		}
+	}
 }
 
 void UOHSMCombatComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)

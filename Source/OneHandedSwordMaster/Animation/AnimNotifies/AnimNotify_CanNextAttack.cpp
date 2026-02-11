@@ -10,8 +10,6 @@ void UAnimNotify_CanNextAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 	
-	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("여기는 나오나?"));
-	
 	if (AActor* Owner = MeshComp->GetOwner())
 	{
 		if (UOHSMCombatComponent* CombatComp = Owner->FindComponentByClass<UOHSMCombatComponent>())

@@ -132,7 +132,22 @@ void AOHSMWeaponBase::PerformTrace()
 			{
 				continue;
 			}
-			if (!HitActor->ActorHasTag(TEXT("Enmey")))
+			
+			UE_LOG(LogTemp, Display, TEXT("[무기] Hit: %s"), *HitActor->GetName());
+			UE_LOG(LogTemp, Display, TEXT("[무기] Tags: %d개"), HitActor->Tags.Num());
+			
+			bool bHasEnemyTag = false;
+			
+			for (const FName& Tag : HitActor->Tags)
+			{
+				UE_LOG(LogTemp, Display, TEXT("Tag: %s"), *Tag.ToString());
+				if (Tag == FName(TEXT("Enemy")))
+				{
+					bHasEnemyTag = true;
+				}
+			}
+			
+			if (!HitActor->ActorHasTag(TEXT("Enemy")))
 			{
 				continue;
 			}
@@ -150,6 +165,15 @@ void AOHSMWeaponBase::ClearHitActors()
 
 void AOHSMWeaponBase::OnHitDetected(AActor* HitActor, const FHitResult& HitResult)
 {
+	if (!HitActor)
+	{
+		return;
+	}
+	
+	UE_LOG(LogTemp, Error, TEXT("[무기] ✅ 적 타격! %s (데미지: %.1f)"), 
+		   *HitActor->GetName(), 
+		   BaseDamage);
+	
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Hit %s !"), *HitActor->GetName()));

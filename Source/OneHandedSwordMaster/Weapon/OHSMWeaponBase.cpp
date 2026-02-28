@@ -4,6 +4,7 @@
 #include "OHSMWeaponBase.h"
 
 #include "GameFramework/Character.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 
 AOHSMWeaponBase::AOHSMWeaponBase()
 {
@@ -174,10 +175,21 @@ void AOHSMWeaponBase::OnHitDetected(AActor* HitActor, const FHitResult& HitResul
 		   *HitActor->GetName(), 
 		   BaseDamage);
 	
-	if (GEngine)
+	if (UOHSMHealthComponent* HealthComp = HitActor->FindComponentByClass<UOHSMHealthComponent>())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Hit %s !"), *HitActor->GetName()));
+		HealthComp->TakeDamage(BaseDamage, GetWeaponOwner());
 	}
+	
+	// 디버그 구체
+	DrawDebugSphere(
+		GetWorld(),
+		HitResult.ImpactPoint,
+		20.0f,
+		12,
+		FColor::Red,
+		false,
+		0.5f
+	);
 }
 
 AActor* AOHSMWeaponBase::GetWeaponOwner() const

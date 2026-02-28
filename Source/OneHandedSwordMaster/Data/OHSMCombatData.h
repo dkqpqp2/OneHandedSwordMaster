@@ -56,3 +56,50 @@ public:
 	{
 	}
 };
+
+UENUM(BlueprintType)
+enum class EEnemyAttackType : uint8
+{
+	BasicAttack		UMETA(DisplayName = "기본공격"),
+	ComboAttack		UMETA(DisplayName = "콤보공격"),
+	SkillAttack		UMETA(DisplayName = "스킬공격")
+};
+
+USTRUCT(BlueprintType)
+struct FEnemyAttackPattern : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	EEnemyAttackType AttackType = EEnemyAttackType::BasicAttack;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	TObjectPtr<UAnimMontage> AttackMontage = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float Damage = 20.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float AttackRange = 150.0f;
+	
+	// 가중치 (확률)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float Weight = 1.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float Cooldown = 0.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	int32 ComboCount = 1;
+	
+	FEnemyAttackPattern()
+		: AttackType(EEnemyAttackType::BasicAttack)
+		, AttackMontage(nullptr)
+		, Damage(20.0f)
+		, AttackRange(150.0f)
+		, Weight(1.0f)
+		, Cooldown(0.0f)
+		, ComboCount(1)
+	{
+	}
+};

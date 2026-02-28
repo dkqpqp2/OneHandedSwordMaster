@@ -52,6 +52,8 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	GetMesh()->SetCollisionProfileName(FName("CharacterMesh"));
 	
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
+	
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMeshRef(TEXT("/Script/Engine.SkeletalMesh'/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple'"));
 	if (CharacterMeshRef.Object)
 	{

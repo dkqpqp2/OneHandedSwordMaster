@@ -6,10 +6,9 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "OneHandedSwordMaster/AI/OHSMEnemyAIController.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 #include "OneHandedSwordMaster/Data/OHSMCombatData.h"
-#include "OneHandedSwordMaster/AI/OHSMEnemyAIController.h"
+
 
 AOHSMEnemyBase::AOHSMEnemyBase()
 {
@@ -28,7 +27,7 @@ AOHSMEnemyBase::AOHSMEnemyBase()
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	AIControllerClass = AOHSMEnemyAIController::StaticClass();
+	
 
 }
 
@@ -282,8 +281,12 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 	return AvailablePatterns[0];
 }
 
+void AOHSMEnemyBase::ChangeAIAnimType(uint8 AnimType)
+{
+}
+
 void AOHSMEnemyBase::OnDetectionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// Aggressive 타입만 자동 감지
 	if (Personality != EEnemyPersonality::Aggressive)

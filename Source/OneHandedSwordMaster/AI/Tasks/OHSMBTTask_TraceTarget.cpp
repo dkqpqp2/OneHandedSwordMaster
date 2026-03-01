@@ -9,6 +9,7 @@
 // AI 이동 관련 라이브러리
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "OneHandedSwordMaster/AI/OHSMEnemyAnimInstance.h"
 
 UOHSMBTTask_TraceTarget::UOHSMBTTask_TraceTarget()
 {
@@ -32,15 +33,20 @@ EBTNodeResult::Type UOHSMBTTask_TraceTarget::ExecuteTask(UBehaviorTreeComponent&
 	}
 	
 	AActor* TargetActor = Cast<AActor>(Controller->GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+	// 타겟이 없으면
 	if (!IsValid(TargetActor))
 	{
 		Controller->StopMovement();
+		
+		Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
 		
 		return EBTNodeResult::Failed;
 	}
 	
 	// 장애물이 존재해도 피해서 찾아옴.
 	UAIBlueprintHelperLibrary::SimpleMoveToActor(Controller, TargetActor);
+	
+	Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Run));
 	
 	return EBTNodeResult::InProgress;
 }
@@ -68,6 +74,8 @@ void UOHSMBTTask_TraceTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8*
 		
 		Controller->StopMovement();
 		
+		Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
+		
 		return;
 	}
 	
@@ -94,6 +102,8 @@ void UOHSMBTTask_TraceTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8*
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		
 		Controller->StopMovement();
+		
+		Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
 	}
 }
 

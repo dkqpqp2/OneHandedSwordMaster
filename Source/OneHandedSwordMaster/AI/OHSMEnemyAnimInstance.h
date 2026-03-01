@@ -19,6 +19,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EEnemyAIState AnimType;
 	
+public:
+	void ChangeAnimType(EEnemyAIState Type)
+	{
+		AnimType = Type;
+	}
+	
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;

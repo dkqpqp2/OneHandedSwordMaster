@@ -131,6 +131,9 @@ public:
 		return GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	}
 	
+public:
+	virtual void ChangeAIAnimType(uint8 AnimType);
+	
 protected:
 	/** 공격 패턴 선택 */
 	struct FEnemyAttackPattern* SelectAttackPattern();

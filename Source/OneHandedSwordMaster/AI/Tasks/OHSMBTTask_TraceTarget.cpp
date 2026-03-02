@@ -97,13 +97,12 @@ void UOHSMBTTask_TraceTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8*
 		Distance -= TargetCapsule->GetScaledCapsuleRadius();
 	}
 	
-	if (Distance <= 150.0f)
+	if (Distance <= Enemy->AttackRange)
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		
 		Controller->StopMovement();
 		
-		Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
 	}
 }
 

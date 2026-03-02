@@ -80,7 +80,7 @@ struct FEnemyAttackPattern : public FTableRowBase
 	float Damage = 20.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
-	float AttackRange = 150.0f;
+	float AttackRange = 100.0f;
 	
 	// 가중치 (확률)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
@@ -96,7 +96,7 @@ struct FEnemyAttackPattern : public FTableRowBase
 		: AttackType(EEnemyAttackType::BasicAttack)
 		, AttackMontage(nullptr)
 		, Damage(20.0f)
-		, AttackRange(150.0f)
+		, AttackRange(100.0f)
 		, Weight(1.0f)
 		, Cooldown(0.0f)
 		, ComboCount(1)

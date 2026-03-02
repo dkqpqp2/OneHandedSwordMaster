@@ -28,4 +28,10 @@ public:
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	
+	UFUNCTION()
+	void AnimNotify_OnCollision();
+	
+	UFUNCTION()
+	void AnimNotify_OffCollision();
 };

@@ -14,7 +14,9 @@ public class OneHandedSwordMaster : ModuleRules
 			"EnhancedInput", 
 			"AIModule",
 			"GameplayTasks",
-			"NavigationSystem"
+			"NavigationSystem",
+			"Niagara",
+			"NiagaraCore"
 		});
 	}
 }

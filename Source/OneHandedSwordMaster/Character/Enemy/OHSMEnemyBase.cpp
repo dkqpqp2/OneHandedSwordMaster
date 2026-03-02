@@ -3,12 +3,16 @@
 
 #include "OHSMEnemyBase.h"
 
+#include "AIController.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 #include "OneHandedSwordMaster/Data/OHSMCombatData.h"
-
+#include "NiagaraFunctionLibrary.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Engine/DamageEvents.h"
 
 AOHSMEnemyBase::AOHSMEnemyBase()
 {
@@ -109,52 +113,85 @@ void AOHSMEnemyBase::SetTarget(AActor* NewTarget)
 	}
 }
 
-void AOHSMEnemyBase::PerformAttack()
+void AOHSMEnemyBase::PerformAttack(bool bIsAreaAttack, float Radius, AActor* HitTargetActor)
 {
-	if (bIsAttacking || !TargetActor)
+	UE_LOG(LogTemp, Warning, TEXT("PerformAttack 호출 - bIsAreaAttack: %d"), bIsAreaAttack);
+    
+	if (!CurrentAttackPattern)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentAttackPattern이 nullptr"));
 		return;
 	}
 
-	// 공격 범위 체크
-	if (!IsInAttackRange())
+	TArray<AActor*> HitActors;
+
+	if (bIsAreaAttack)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Enemy] %s - 공격 범위 밖"), *GetName());
-		return;
-	}
+		// 발밑 위치 기준
+		FVector OriginLocation = GetActorLocation();
+		OriginLocation.Z -= GetHalfHeight();
 
-	// 공격 패턴 선택
-	FEnemyAttackPattern* Pattern = SelectAttackPattern();
-	if (!Pattern || !Pattern->AttackMontage)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Enemy] %s - 공격 패턴 없음!"), *GetName());
-		return;
-	}
+		// 범위 내 액터 감지
+		UKismetSystemLibrary::SphereOverlapActors(
+			GetWorld(),
+			OriginLocation,
+			Radius,
+			TArray<TEnumAsByte<EObjectTypeQuery>>{ ObjectTypeQuery3 }, // Pawn 채널
+			nullptr,
+			TArray<AActor*>{ this }, // 자기 자신 제외
+			HitActors
+		);
 
-	bIsAttacking = true;
-
-	UE_LOG(LogTemp, Display, TEXT("[Enemy] %s - 공격 실행: %s (데미지: %.0f)"), 
-		   *GetName(),
-		   *Pattern->AttackMontage->GetName(),
-		   Pattern->Damage);
-
-	// 애니메이션 재생
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		AnimInstance->Montage_Play(Pattern->AttackMontage, 1.0f);
-
-		// 몽타주 종료 콜백
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
+		// 이펙트 스폰
+		if (IsValid(SkillHitEffect))
 		{
-			bIsAttacking = false;
-			UE_LOG(LogTemp, Log, TEXT("[Enemy] %s - 공격 종료"), *GetName());
-		});
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, Pattern->AttackMontage);
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				SkillHitEffect,
+				OriginLocation,
+				FRotator::ZeroRotator,
+				FVector(0.5,0.5,0.1)
+			);
+		}
+
+#if WITH_EDITOR
+		DrawDebugSphere(GetWorld(), OriginLocation, Radius, 16, FColor::Red, false, 1.0f);
+#endif
+	}
+	else
+	{
+		// 단일 공격 - TargetActor에게만 데미지
+		if (IsValid(HitTargetActor))
+		{
+			HitActors.Add(HitTargetActor);
+			
+			if (IsValid(AttackHitEffect))
+			{
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					GetWorld(),
+					AttackHitEffect,
+					HitTargetActor->GetActorLocation(), // 맞은 액터 위치
+					FRotator::ZeroRotator,
+					FVector(0.1f)
+				);
+			}
+		}
 	}
 
-	// 상태 변경
-	SetAIState(EEnemyAIState::Attacking);
+	// 데미지 적용
+	for (AActor* HitActor : HitActors)
+	{
+		if (!HitActor->ActorHasTag(TEXT("Player"))) continue;
+
+		HitActor->TakeDamage(
+			CurrentAttackPattern->Damage,
+			FDamageEvent(),
+			GetController(),
+			this
+		);
+		
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::Printf(TEXT("Damage : %f"), CurrentAttackPattern->Damage));
+	}
 }
 
 bool AOHSMEnemyBase::IsInAttackRange() const
@@ -189,7 +226,7 @@ void AOHSMEnemyBase::SetAIState(EEnemyAIState NewState)
 			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 			break;
 		case EEnemyAIState::Attacking:
-			GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 			break;
 		default:
 			break;
@@ -222,38 +259,33 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 		return nullptr;
 	}
 
-	// 모든 공격 패턴 가져오기
-	TArray<FEnemyAttackPattern*> AllPatterns;
-	AttackPatternTable->GetAllRows<FEnemyAttackPattern>(TEXT("AttackPattern"), AllPatterns);
-
-	if (AllPatterns.Num() == 0)
-	{
-		return nullptr;
-	}
-
-	// 쿨다운 체크 & 가중치 합계 계산
-	TArray<FEnemyAttackPattern*> AvailablePatterns;
+	TArray<TPair<FName, FEnemyAttackPattern*>> AvailablePatterns;
 	float TotalWeight = 0.0f;
-
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 
-	for (FEnemyAttackPattern* Pattern : AllPatterns)
+	for (const FName& RowName : AttackPatternTable->GetRowNames())
 	{
+		FEnemyAttackPattern* Pattern = AttackPatternTable->FindRow<FEnemyAttackPattern>(RowName, TEXT(""));
+		if (!Pattern)
+		{
+			continue;
+		}
+		
 		// 쿨다운 체크
 		if (Pattern->Cooldown > 0.0f)
 		{
-			float* LastUseTime = SkillCooldowns.Find(FName(*Pattern->AttackMontage->GetName()));
+			float* LastUseTime = SkillCooldowns.Find(RowName);
 			if (LastUseTime && (CurrentTime - *LastUseTime) < Pattern->Cooldown)
 			{
-				continue;  // 쿨다운 중
+				continue;
 			}
 		}
 
-		AvailablePatterns.Add(Pattern);
+		AvailablePatterns.Add(TPair<FName, FEnemyAttackPattern*>(RowName, Pattern));
 		TotalWeight += Pattern->Weight;
 	}
 
-	if (AvailablePatterns.Num() == 0)
+	if (AvailablePatterns.IsEmpty())
 	{
 		return nullptr;
 	}
@@ -262,23 +294,25 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 	float RandomValue = FMath::FRandRange(0.0f, TotalWeight);
 	float CurrentWeight = 0.0f;
 
-	for (FEnemyAttackPattern* Pattern : AvailablePatterns)
+	for (auto& [RowName, Pattern] : AvailablePatterns)
 	{
 		CurrentWeight += Pattern->Weight;
 		if (RandomValue <= CurrentWeight)
 		{
-			// 쿨다운 기록
 			if (Pattern->Cooldown > 0.0f)
 			{
-				SkillCooldowns.Add(FName(*Pattern->AttackMontage->GetName()), CurrentTime);
+				SkillCooldowns.Add(RowName, CurrentTime);
 			}
-
-			return Pattern;
+			
+			CurrentAttackPattern = Pattern;
+			
+			return CurrentAttackPattern;
 		}
 	}
 
+	CurrentAttackPattern = AvailablePatterns[0].Value;
 	// 만약을 위해
-	return AvailablePatterns[0];
+	return CurrentAttackPattern;
 }
 
 void AOHSMEnemyBase::ChangeAIAnimType(uint8 AnimType)

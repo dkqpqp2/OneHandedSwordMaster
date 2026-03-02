@@ -8,12 +8,11 @@
 #include "BehaviorTree/BlackboardComponent.h"
 
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
-
-class AOHSMEnemyBase;
+#include "OneHandedSwordMaster/Data/OHSMCombatData.h"
 
 UBTTask_EnemyAttack::UBTTask_EnemyAttack()
 {
-	NodeName = "Enemy Attack";
+	NodeName = "EnemyAttack";
 	bNotifyTick = true;
 	bNotifyTaskFinished = true;
 }
@@ -22,35 +21,41 @@ EBTNodeResult::Type UBTTask_EnemyAttack::ExecuteTask(UBehaviorTreeComponent& Own
 {
 	Super::ExecuteTask(OwnerComp, NodeMemory);
 	
+	AAIController* Controller = OwnerComp.GetAIOwner();
 	
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	if (BlackboardComp)
-	{
-		UObject* Target = BlackboardComp->GetValueAsObject(TEXT("TargetActor"));
-		UE_LOG(LogTemp, Warning, TEXT("[BT Attack] Blackboard TargetActor: %s"), 
-			   Target ? *Target->GetName() : TEXT("NULL"));
-	}
-	
-	AAIController* AIController = OwnerComp.GetAIOwner();
-	if (!AIController)
+	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(Controller->GetPawn());
+	if (!IsValid(Enemy))
 	{
 		return EBTNodeResult::Failed;
 	}
 	
-	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(AIController->GetPawn());
-	if (!Enemy)
+	AActor* TargetActor = Cast<AActor>(Controller->GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+	if (!IsValid(TargetActor))
+	{
+		Controller->StopMovement();
+		
+		Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
+		
+		return EBTNodeResult::Failed;
+	}
+	
+	FEnemyAttackPattern* Pattern = Enemy->SelectAttackPattern();
+	if (!Pattern || !IsValid(Pattern->AttackMontage))
 	{
 		return EBTNodeResult::Failed;
 	}
 	
-	if (!Enemy->IsInAttackRange())
+	MontageLength = Enemy->PlayAnimMontage(Pattern->AttackMontage);
+	Enemy->SetTarget(TargetActor);
+	ElapsedTime	 = 0.0f;
+	
+	if (MontageLength <= 0.0f)
 	{
 		return EBTNodeResult::Failed;
 	}
 	
-	Enemy->PerformAttack();
-	bIsAttacking = true;
-	
+	Enemy->SetAIState(EEnemyAIState::Attacking);
+	Enemy->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Attacking));
 	
 	return EBTNodeResult::InProgress;
 }
@@ -59,31 +64,35 @@ void UBTTask_EnemyAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 {
 	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
 	
-	AAIController* AIController = OwnerComp.GetAIOwner();
-	if (!AIController)
-	{
-		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-		return;
-	}
+	ElapsedTime += DeltaSeconds;
 	
-	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(AIController->GetPawn());
-	if (!Enemy)
+	if (ElapsedTime >= MontageLength)
 	{
-		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-		return;
-	}
-	
-	static float AttackTimer = 0.0f;
-	
-	if (bIsAttacking)
-	{
-		AttackTimer += DeltaSeconds;
-		if (AttackTimer >= 3.0f)
+		AAIController* Controller = OwnerComp.GetAIOwner();
+		AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(Controller->GetPawn());
+		if (IsValid(Enemy))
 		{
-			bIsAttacking = false;
-			AttackTimer = 0.0f;
-			
-			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+			Enemy->SetAIState(EEnemyAIState::Idle);
 		}
+		
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
+	
+}
+
+void UBTTask_EnemyAttack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
+	EBTNodeResult::Type TaskResult)
+{
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+	
+	AAIController*  Controller = OwnerComp.GetAIOwner();
+	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(Controller->GetPawn());
+	if (IsValid(Enemy))
+	{
+		Enemy->StopAnimMontage();
+		Enemy->SetAIState(EEnemyAIState::Idle);
+	}
+
+	MontageLength = 0.0f;
+	ElapsedTime   = 0.0f;
 }

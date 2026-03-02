@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "OneHandedSwordMaster/Data/OHSMCombatData.h"
+#include "NiagaraSystem.h"
 #include "OHSMEnemyBase.generated.h"
 
 UENUM(BlueprintType)
@@ -56,7 +58,7 @@ public:
 	
 	/** 공격 범위 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Combat", meta = (ClampMin = "50"))
-	float AttackRange = 150.0f;
+	float AttackRange = 100.0f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Combat", meta = (ClampMin = "50"))
 	float LeashRange = 1500.0f;
@@ -72,16 +74,26 @@ public:
 	float WalkSpeed = 300.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Movement")
-	float RunSpeed = 500.0f;
+	float RunSpeed = 400.0f;
+	
+public:
+	// 스킬 범위 공격 이펙트
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Skill")
+	TObjectPtr<UNiagaraSystem> SkillHitEffect;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Effect")
+	TObjectPtr<UNiagaraSystem> AttackHitEffect;
 	
 protected:
 	/** 공격 패턴 DataTable */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UDataTable> AttackPatternTable;
 
 	/** 현재 AI 상태 */
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
 	EEnemyAIState CurrentState = EEnemyAIState::Idle;
+	
+	FEnemyAttackPattern* CurrentAttackPattern = nullptr;
 
 	/** 타겟 (플레이어) */
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
@@ -102,7 +114,7 @@ public:
 
 	/** 공격 실행 */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void PerformAttack();
+	void PerformAttack(bool bIsAreaAttack = false, float Radius = 0.0f, AActor* HitTargetActor = nullptr);
 
 	/** 공격 가능 범위인지 */
 	UFUNCTION(BlueprintPure, Category = "Combat")
@@ -134,10 +146,11 @@ public:
 public:
 	virtual void ChangeAIAnimType(uint8 AnimType);
 	
-protected:
+public:
 	/** 공격 패턴 선택 */
 	struct FEnemyAttackPattern* SelectAttackPattern();
 
+protected:
 	/** 감지 범위 오버랩 */
 	UFUNCTION()
 	void OnDetectionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 

@@ -20,8 +20,25 @@ public:
 protected:
 	TObjectPtr<class UOHSMEnemyAnimInstance> EnemyAnimInst;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<class USphereComponent> RSocketCollision;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<class USphereComponent> LSocketCollision;
+	
 public:
 	virtual void ChangeAIAnimType(uint8 AnimType) override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void SetRSocketCollisionEnabled(bool bEnable);
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void SetLSocketCollisionEnabled(bool bEnable);
+	
+	UFUNCTION()
+	void OnCollisionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	
+	
 	
 protected:
 	virtual void BeginPlay() override;

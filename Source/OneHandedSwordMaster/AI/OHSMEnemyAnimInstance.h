@@ -17,7 +17,25 @@ class ONEHANDEDSWORDMASTER_API UOHSMEnemyAnimInstance : public UAnimInstance
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class ACharacter> Owner;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UCharacterMovementComponent> Movement;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FVector Velocity;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EEnemyAIState AnimType;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float GroundSpeed;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	uint8 bIsIdle : 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float MovingThreshould;
 	
 public:
 	void ChangeAnimType(EEnemyAIState Type)

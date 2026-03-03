@@ -54,14 +54,14 @@ public:
 	
 	/** 감지 범위 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Detection", meta = (ClampMin = "100"))
-	float DetectionRange = 800.0f;
+	float DetectionRange = 500.0f;
 	
 	/** 공격 범위 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Combat", meta = (ClampMin = "50"))
 	float AttackRange = 100.0f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Combat", meta = (ClampMin = "50"))
-	float LeashRange = 1500.0f;
+	float LeashRange = 1000.0f;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "AI|Leash")
 	FVector HomeLocation;
@@ -71,7 +71,7 @@ public:
 
 	/** 이동 속도 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Movement")
-	float WalkSpeed = 300.0f;
+	float WalkSpeed = 400.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Movement")
 	float RunSpeed = 400.0f;

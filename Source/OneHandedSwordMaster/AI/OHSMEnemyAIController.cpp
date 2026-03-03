@@ -65,37 +65,21 @@ void AOHSMEnemyAIController::RunAI()
 		return;
 	}
 	
-	UBlackboardComponent* BlackboardComp = Blackboard;
+	UBlackboardComponent* BlackboardComp = Blackboard.Get();
 
 	// Blackboard 초기화
-	if (BlackboardAsset)
+	if (UseBlackboard(BlackboardAsset, BlackboardComp))
 	{
-		UseBlackboard(BlackboardAsset, BlackboardComp);
-	}
-	else if (BehaviorTree->BlackboardAsset)
-	{
-		UseBlackboard(BehaviorTree->BlackboardAsset, BlackboardComp);
-	}
-
-	// Behavior Tree 실행
-	bool bSuccess = RunBehaviorTree(BehaviorTree);
-
-	if (bSuccess)
-	{
-		UE_LOG(LogTemp, Display, TEXT("[AI Controller] Behavior Tree 실행 성공: %s"), *BehaviorTree->GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[AI Controller] Behavior Tree 실행 실패!"));
+		Blackboard->SetValueAsVector(TEXT("HomePos"), GetPawn()->GetActorLocation());
+		bool RunResult = RunBehaviorTree(BehaviorTree);
 	}
 }
 
 void AOHSMEnemyAIController::StopAI()
 {
-	UBrainComponent* Brain = BrainComponent;
-	if (Brain)
+	UBehaviorTreeComponent* BTComponent = Cast<UBehaviorTreeComponent>(BrainComponent);
+	if (BTComponent)
 	{
-		Brain->StopLogic(TEXT("AI Stopped"));
-		UE_LOG(LogTemp, Log, TEXT("[AI Controller] Behavior Tree 중지"));
+		BTComponent->StopTree();
 	}
 }

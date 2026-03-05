@@ -25,9 +25,7 @@ protected:
 	FBlackboardKeySelector IsLeashedKey;
 	
 	UPROPERTY(EditAnywhere, Category = "Bloackboard")
-	FBlackboardKeySelector HomePosKey;
+	FBlackboardKeySelector HomeLocationKey;
 	
-	UPROPERTY(EditAnywhere, Category = "Blackboard")
-	FBlackboardKeySelector TargetActorKey;
 	
 };

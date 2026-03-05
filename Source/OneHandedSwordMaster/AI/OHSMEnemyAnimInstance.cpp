@@ -3,7 +3,6 @@
 
 #include "OHSMEnemyAnimInstance.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyRed.h"
 
@@ -12,23 +11,11 @@ void UOHSMEnemyAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 	
 	AnimType = EEnemyAIState::Idle;
-	
-	Owner = Cast<ACharacter>(GetOwningActor());
-	if (Owner)
-	{
-		Movement = Owner->GetCharacterMovement();
-	}
 }
 
 void UOHSMEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-	if (Movement)
-	{
-		Velocity = Movement->Velocity;
-		GroundSpeed = Velocity.Size2D();
-		bIsIdle = GroundSpeed < MovingThreshould;
-	}
 }
 
 void UOHSMEnemyAnimInstance::AnimNotify_OnCollision()

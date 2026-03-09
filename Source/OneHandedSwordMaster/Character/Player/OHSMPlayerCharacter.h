@@ -5,20 +5,28 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "OneHandedSwordMaster/Character/Interface/OHSMCharacterHUDInterface.h"
+#include "OneHandedSwordMaster/Character/Interface/OHSMCharacterInterface.h"
 #include "OHSMPlayerCharacter.generated.h"
 
+class UOHSMPlayerStatComponent;
+
 UCLASS()
-class ONEHANDEDSWORDMASTER_API AOHSMPlayerCharacter : public ACharacter
+class ONEHANDEDSWORDMASTER_API AOHSMPlayerCharacter : public ACharacter, public IOHSMCharacterInterface, public IOHSMCharacterHUDInterface
 {
 	GENERATED_BODY()
 
 public:
 	AOHSMPlayerCharacter();
+	
+	virtual void PostInitializeComponents() override;
 
 protected:
 	virtual void BeginPlay() override;
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
@@ -67,9 +75,30 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Attack();
+	void SetDead();
 	
 public:
 	TObjectPtr<class USpringArmComponent> GetCameraBoom() const { return CameraBoom; }
 	TObjectPtr<class UCameraComponent> GetFollowCamera() const { return FollowCamera; }
 	TObjectPtr<class UOHSMCombatComponent> GetCombatComponent() const { return CombatComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UOHSMPlayerStatComponent* GetStatComponent() const { return PlayerStat; }
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMPlayerStatComponent> PlayerStat;
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMWidgetComponent> HpBar;
+	
+	virtual void SetupCharacterWidget(class UOHSMUserWidget* InUserWidget) override;
+	virtual void SetupHUDWidget(class UOHSMHUDWidget* InHUDWidget) override;
+	
+protected:
+	/** 경험치 추가 (테스트용) */
+	UFUNCTION(Exec)
+	void AddExp(int32 Amount);
+	
 };

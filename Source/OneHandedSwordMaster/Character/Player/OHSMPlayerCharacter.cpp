@@ -7,12 +7,18 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "VectorVMExperimental.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMWidgetComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCombatComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMHpBar.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMHUDWidget.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMManaBar.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMExpBar.h"
 
 
 // Sets default values
@@ -38,12 +44,14 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f;
+	CameraBoom->TargetArmLength = 700.0f;
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
 	
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	FollowCamera->SetRelativeRotation(FRotator(0.0f, -20.0f, 0.0f));
 	
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.0f, 0.0f, -100.0f),
@@ -68,6 +76,29 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	
 	// 공격 컴포넌트 추가
 	CombatComponent = CreateDefaultSubobject<UOHSMCombatComponent>(TEXT("CombatComponent"));
+	
+	// Stat Component
+	PlayerStat = CreateDefaultSubobject<UOHSMPlayerStatComponent>(TEXT("PlayerStat"));
+	
+	// Widget Component
+	HpBar = CreateDefaultSubobject<UOHSMWidgetComponent>(TEXT("Widget"));
+	HpBar->SetupAttachment(GetMesh());
+	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 180.0f));
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(TEXT("/Game/OneHandedSwordMaster/UI/WBP_HpBar.WBP_HpBar_C"));
+	if (HpBarWidgetRef.Class)
+	{ 
+		HpBar->SetWidgetClass(HpBarWidgetRef.Class);
+		HpBar->SetWidgetSpace(EWidgetSpace::Screen);
+		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
+		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+void AOHSMPlayerCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	PlayerStat->OnHpZero.AddUObject(this, &AOHSMPlayerCharacter::SetDead);
 }
 
 // Called when the game starts or when spawned
@@ -126,6 +157,16 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	}
 }
 
+float AOHSMPlayerCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent,
+	AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	
+	PlayerStat->ApplyDamage(Damage);
+	
+	return Damage;
+}
+
 void AOHSMPlayerCharacter::EquipWeapon(class AOHSMWeaponBase* Weapon)
 {
 	if (!Weapon)
@@ -179,6 +220,86 @@ void AOHSMPlayerCharacter::Attack()
 	if (CombatComponent)
 	{
 		CombatComponent->PerformBasicAttack();
+	}
+}
+
+void AOHSMPlayerCharacter::SetDead()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+    if (MeshComp)
+    {
+	    // 물리 시뮬레이션 활성화
+    	MeshComp->SetSimulatePhysics(true);
+    	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+        
+    	// 캡슐 충돌 비활성화
+    	UCapsuleComponent* Capsule = GetCapsuleComponent();
+    	if (Capsule)
+    	{
+    		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    	}
+        
+    	// CharacterMovement 비활성화
+    	UCharacterMovementComponent* Movement = GetCharacterMovement();
+    	if (Movement)
+    	{
+    		Movement->DisableMovement();
+    		Movement->StopMovementImmediately();
+    	}
+    	
+    	HpBar->SetHiddenInGame(true);
+    }
+}
+
+void AOHSMPlayerCharacter:: SetupCharacterWidget(class UOHSMUserWidget* InUserWidget)
+{
+	UOHSMHpBar* HpBarWidget = Cast<UOHSMHpBar>(InUserWidget);
+	if (HpBarWidget)
+	{
+		float MaxHp = PlayerStat->GetMaxHp();
+		float CurrentHp = PlayerStat->GetCurrentHp();
+		
+		HpBarWidget->SetMaxHp(MaxHp);
+		HpBarWidget->UpdateHpBar(CurrentHp, MaxHp);
+		PlayerStat->OnHpChanged.AddUObject(HpBarWidget, &UOHSMHpBar::UpdateHpBar);
+	}
+	else if (UOHSMManaBar* ManaBarWidget = Cast<UOHSMManaBar>(InUserWidget))
+	{
+		float MaxMana = PlayerStat->GetMaxMana();
+		float CurrentMana = PlayerStat->GetCurrentMana();
+		
+		ManaBarWidget->SetMaxMana(MaxMana);
+		ManaBarWidget->UpdateManaBar(CurrentMana, MaxMana);
+		
+		PlayerStat->OnManaChanged.AddUObject(ManaBarWidget, &UOHSMManaBar::UpdateManaBar);
+	}
+	else if (UOHSMExpBar* ExpBarWidget = Cast<UOHSMExpBar>(InUserWidget))
+	{
+		int32 CurrentExp = 0;
+		int32 RequiredExp = 100;
+		
+		ExpBarWidget->UpdateExpBar(CurrentExp, RequiredExp);
+        
+		PlayerStat->OnExpChanged.AddDynamic(ExpBarWidget, &UOHSMExpBar::UpdateExpBar);
+	}
+}
+
+void AOHSMPlayerCharacter::SetupHUDWidget(class UOHSMHUDWidget* InHUDWidget)
+{
+	if (InHUDWidget)
+	{
+		InHUDWidget->UpdateHp(PlayerStat->GetCurrentHp(), PlayerStat->GetMaxHp());
+		InHUDWidget->UpdateMana(PlayerStat->GetCurrentMana(), PlayerStat->GetMaxMana());
+		InHUDWidget->OnExpChanged(0, PlayerStat->GetCurrentHp());
+	}
+}
+
+void AOHSMPlayerCharacter::AddExp(int32 Amount)
+{
+	if (PlayerStat)
+	{
+		PlayerStat->AddExperience(Amount);
 	}
 }
 

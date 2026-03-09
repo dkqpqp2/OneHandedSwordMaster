@@ -14,6 +14,8 @@ class ONEHANDEDSWORDMASTER_API AOHSMGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
-	public:
-	 	AOHSMGameMode();
+public:
+	AOHSMGameMode();
+	
+	
 };

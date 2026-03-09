@@ -6,6 +6,8 @@ public class OneHandedSwordMaster : ModuleRules
 {
 	public OneHandedSwordMaster(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PublicIncludePathModuleNames.AddRange(new string[] {"OneHandedSwordMaster"});
+		
 		PublicDependencyModuleNames.AddRange(new string[] { 
 			"Core", 
 			"CoreUObject", 
@@ -16,7 +18,8 @@ public class OneHandedSwordMaster : ModuleRules
 			"GameplayTasks",
 			"NavigationSystem",
 			"Niagara",
-			"NiagaraCore"
+			"NiagaraCore",
+			"UMG"
 		});
 	}
 }

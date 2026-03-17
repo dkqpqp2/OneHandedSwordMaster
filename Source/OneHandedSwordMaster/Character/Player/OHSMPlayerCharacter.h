@@ -52,6 +52,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> AttackAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> InventoryAction;
+	
 // ============= 무기 시스템 =============
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
@@ -70,6 +73,18 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UOHSMCombatComponent> CombatComponent;
+	
+// 인벤토리 컴포넌트
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMInventoryComponent> InventoryComponent;
+	
+public:
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	UOHSMInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+	
+protected:
+	void ToggleInventory();
 	
 protected:
 	void Move(const FInputActionValue& Value);

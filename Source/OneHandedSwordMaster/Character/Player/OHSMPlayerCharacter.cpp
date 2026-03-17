@@ -13,6 +13,7 @@
 #include "VectorVMExperimental.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMWidgetComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCombatComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMHpBar.h"
@@ -92,6 +93,8 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
 		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
+	InventoryComponent = CreateDefaultSubobject<UOHSMInventoryComponent>(TEXT("InventoryComponent"));
 }
 
 void AOHSMPlayerCharacter::PostInitializeComponents()
@@ -150,6 +153,9 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		
 		// 공격
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::Attack);
+		
+		// 인벤토리
+		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, &AOHSMPlayerCharacter::ToggleInventory);
 	}
 	else
 	{
@@ -175,6 +181,17 @@ void AOHSMPlayerCharacter::EquipWeapon(class AOHSMWeaponBase* Weapon)
 	}
 	CurrentWeapon = Weapon;
 	Weapon->EquipToCharacter(this);
+}
+
+void AOHSMPlayerCharacter::ToggleInventory()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+	
+	
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)

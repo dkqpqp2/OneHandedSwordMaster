@@ -23,7 +23,10 @@ protected:
 	
 protected:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UCanvasPanel> RootCanvas;
+	TObjectPtr<class UBorder> MainBorder;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UWidget> TitleBar;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TitleText;
@@ -35,10 +38,7 @@ protected:
 	TObjectPtr<class UUniformGridPanel> SlotGrid;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UImage> ResizeHandle;
-	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class USizeBox> InventorySizeBox;
+	TObjectPtr<class UScrollBox> ScrollContainer;
 	
 protected:
 	UPROPERTY()
@@ -55,22 +55,13 @@ protected:
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Size")
-	FVector2D MinSize = FVector2D(400, 300);
+	FVector2D MinSize = FVector2D(440, 400);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Size")
-	FVector2D MaxSize = FVector2D(800, 600);
+	FVector2D MaxSize = FVector2D(840, 760);
 	
 	UPROPERTY()
-	FVector2D CurrentSize = FVector2D(600, 400);
-	
-	UPROPERTY()
-	bool bIsResizing = false;
-	
-	UPROPERTY()
-	FVector2D ResizeStartMousePos;
-	
-	UPROPERTY()
-	FVector2D ResizeStartSize;
+	FVector2D CurrentSize = FVector2D(520, 480);
 	
 protected:
 	UPROPERTY()
@@ -104,9 +95,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ToggleInventory();
 	
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Size")
-	void SetInventorySize(FVector2D NewSize);
-	
 protected:
 	UFUNCTION()
 	void OnInventorySlotUpdated(int32 SlotIndex);
@@ -123,9 +111,7 @@ protected:
 	
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
-	FReply OnResizeHandleMouseDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
+	bool IsMouseOverTitleBar(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
 	
 	void SetWidgetPosition(FVector2D NewPosition);
-	
-	void ApplySize();
 };

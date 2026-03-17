@@ -22,6 +22,9 @@ protected:
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UImage> ItemIcon;
@@ -29,8 +32,14 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> ItemCount;
 	
+	/*UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> OuterBorder;
+	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UImage> SlotBackground;
+	TObjectPtr<UBorder> InnerBorder;*/
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> HoverHighlight;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Slot")
@@ -58,6 +67,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory Slot")
 	bool IsEmpty() const { return SlotData.IsEmpty(); }
 	
+	UFUNCTION(BlueprintCallable, Category = "Inventory Slot")
+	void SetDragging(bool bIsDragging);
 protected:
 	const FItemData* GetItemData() const;
 	

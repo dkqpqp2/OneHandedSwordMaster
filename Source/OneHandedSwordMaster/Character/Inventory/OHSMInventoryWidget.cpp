@@ -5,6 +5,7 @@
 
 #include "OHSMInventorySlotWidget.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
@@ -17,7 +18,14 @@ void UOHSMInventoryWidget::NativeConstruct()
 		CloseButton->OnClicked.AddDynamic(this, &UOHSMInventoryWidget::OnCloseButtonClicked);
 	}
 	
-	ApplySize();
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+	{
+		// Anchors: 좌상단 고정
+		CanvasSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+        
+		// 초기 위치
+		CanvasSlot->SetPosition(FVector2D(100, 100));
+	}
 }
 
 void UOHSMInventoryWidget::NativeDestruct()
@@ -76,8 +84,7 @@ void UOHSMInventoryWidget::CreateSlots(int32 SlotCount)
 			int32 Row = i / GridColumns;
 			int32 Column = i % GridColumns;
 			
-			UUniformGridSlot* GridSlot = SlotGrid->AddChildToUniformGrid(SlotWidget, Row, Column);
-			
+			SlotGrid->AddChildToUniformGrid(SlotWidget, Row, Column);
 		}
 	}
 }
@@ -128,14 +135,6 @@ void UOHSMInventoryWidget::ToggleInventory()
 	}
 }
 
-void UOHSMInventoryWidget::SetInventorySize(FVector2D NewSize)
-{
-	CurrentSize.X = FMath::Clamp(NewSize.X, MinSize.X, MaxSize.X);
-	CurrentSize.Y = FMath::Clamp(NewSize.Y, MinSize.Y, MaxSize.Y);
-	
-	ApplySize();
-}
-
 void UOHSMInventoryWidget::OnInventorySlotUpdated(int32 SlotIndex)
 {
 	UpdateSlot(SlotIndex);
@@ -153,28 +152,81 @@ void UOHSMInventoryWidget::OnCloseButtonClicked()
 
 FReply UOHSMInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (IsMouseOverTitleBar(InGeometry, InMouseEvent))
+		{
+			bIsDragging = true;
+            
+			DragStartMousePos = InMouseEvent.GetScreenSpacePosition();
+            
+			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+			{
+				DragStartWidgetPos = CanvasSlot->GetPosition();
+			}
+            
+			return FReply::Handled().CaptureMouse(TakeWidget());
+		}
+	}
+	
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 FReply UOHSMInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (bIsDragging)
+		{
+			bIsDragging = false;
+            
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+	}
+	
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
 }
 
 FReply UOHSMInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (bIsDragging)
+	{
+		FVector2D CurrentMousePos = InMouseEvent.GetScreenSpacePosition();
+		FVector2D MouseDelta = CurrentMousePos - DragStartMousePos;
+        
+		FVector2D NewPosition = DragStartWidgetPos + MouseDelta;
+        
+		SetWidgetPosition(NewPosition);
+        
+		return FReply::Handled();
+	}
+	
 	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+bool UOHSMInventoryWidget::IsMouseOverTitleBar(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!TitleBar)
+	{
+		return false;
+	}
+    
+	FGeometry TitleBarGeometry = TitleBar->GetCachedGeometry();
+	FVector2D LocalMousePos = TitleBarGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	FVector2D TitleBarSize = TitleBarGeometry.GetLocalSize();
+    
+	bool bIsOver = LocalMousePos.X >= 0 && 
+				   LocalMousePos.X <= TitleBarSize.X &&
+				   LocalMousePos.Y >= 0 && 
+				   LocalMousePos.Y <= TitleBarSize.Y;
+    
+	return bIsOver;
 }
 
 void UOHSMInventoryWidget::SetWidgetPosition(FVector2D NewPosition)
 {
-}
-
-void UOHSMInventoryWidget::ApplySize()
-{
-	if (InventorySizeBox)
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
 	{
-		InventorySizeBox->SetWidthOverride(CurrentSize.X);
-		InventorySizeBox->SetHeightOverride(CurrentSize.Y);
+		CanvasSlot->SetPosition(NewPosition);
 	}
 }

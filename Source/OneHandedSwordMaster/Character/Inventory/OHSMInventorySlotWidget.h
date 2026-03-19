@@ -32,12 +32,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> ItemCount;
 	
-	/*UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> OuterBorder;
-	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> InnerBorder;*/
-	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> HoverHighlight;
 

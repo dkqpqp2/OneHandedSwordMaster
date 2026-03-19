@@ -35,7 +35,7 @@ protected:
 	TArray<FInventorySlot> Slots;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory", meta = (ClampMin = "5", ClampMax = "100"))
-	int32 SlotCount = 20;
+	int32 SlotCount = 100;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Size", meta = (ClampMin = "1", ClampMax = "50"))
 	int32 MinSlotCount = 5;

@@ -4,36 +4,51 @@
 #include "OHSMInventoryWidget.h"
 
 #include "OHSMInventorySlotWidget.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 
 void UOHSMInventoryWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
-	if (CloseButton)
-	{
-		CloseButton->OnClicked.AddDynamic(this, &UOHSMInventoryWidget::OnCloseButtonClicked);
-	}
+    Super::NativeConstruct();
 	
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-	{
-		// Anchors: 좌상단 고정
-		CanvasSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+    if (CloseButton)
+    {
+        CloseButton->OnClicked.AddDynamic(this, &UOHSMInventoryWidget::OnCloseButtonClicked);
+    }
+	
+    if (MainBorder)
+    {
+        UPanelSlot* BorderSlot = MainBorder->Slot;
         
-		// 초기 위치
-		CanvasSlot->SetPosition(FVector2D(100, 100));
-	}
+        if (BorderSlot)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[InventoryWidget] MainBorder Slot 타입: %s"),
+                *BorderSlot->GetClass()->GetName());
+        	
+            if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(BorderSlot))
+            {
+                CanvasSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+                CanvasSlot->SetPosition(FVector2D(100, 100));
+                CanvasSlot->SetSize(FVector2D(520, 480));
+                CanvasSlot->SetAlignment(FVector2D(0.0f, 0.0f));
+                
+                FVector2D Pos = CanvasSlot->GetPosition();
+                FVector2D Size = CanvasSlot->GetSize();
+            }
+        }
+    }
 }
+
 
 void UOHSMInventoryWidget::NativeDestruct()
 {
-	if (InventoryComponent)
+	if (InventoryComponent && IsValid(InventoryComponent))
 	{
-		InventoryComponent->OnInventoryUpdated.AddDynamic(this, &UOHSMInventoryWidget::OnInventorySlotUpdated);
-		InventoryComponent->OnInventoryUpdated.AddDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
+		InventoryComponent->OnInventoryUpdated.RemoveDynamic(this, &UOHSMInventoryWidget::OnInventorySlotUpdated);
+		InventoryComponent->OnInventoryUpdated.RemoveDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
 	}
 	
 	Super::NativeDestruct();
@@ -154,22 +169,24 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+        
 		if (IsMouseOverTitleBar(InGeometry, InMouseEvent))
 		{
+            
 			bIsDragging = true;
-            
 			DragStartMousePos = InMouseEvent.GetScreenSpacePosition();
-            
-			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+			
+			if (MainBorder && MainBorder->Slot)
 			{
-				DragStartWidgetPos = CanvasSlot->GetPosition();
+				if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(MainBorder->Slot))
+				{
+					DragStartWidgetPos = CanvasSlot->GetPosition();
+				}
 			}
-            
 			return FReply::Handled().CaptureMouse(TakeWidget());
 		}
 	}
-	
-	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+    return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 FReply UOHSMInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -183,7 +200,7 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, 
 			return FReply::Handled().ReleaseMouseCapture();
 		}
 	}
-	
+    
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
 }
 
@@ -193,14 +210,13 @@ FReply UOHSMInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, cons
 	{
 		FVector2D CurrentMousePos = InMouseEvent.GetScreenSpacePosition();
 		FVector2D MouseDelta = CurrentMousePos - DragStartMousePos;
-        
 		FVector2D NewPosition = DragStartWidgetPos + MouseDelta;
         
 		SetWidgetPosition(NewPosition);
         
 		return FReply::Handled();
 	}
-	
+    
 	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
 }
 
@@ -215,9 +231,9 @@ bool UOHSMInventoryWidget::IsMouseOverTitleBar(const FGeometry& InGeometry, cons
 	FVector2D LocalMousePos = TitleBarGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 	FVector2D TitleBarSize = TitleBarGeometry.GetLocalSize();
     
-	bool bIsOver = LocalMousePos.X >= 0 && 
+	bool bIsOver = LocalMousePos.X >= 0 &&
 				   LocalMousePos.X <= TitleBarSize.X &&
-				   LocalMousePos.Y >= 0 && 
+				   LocalMousePos.Y >= 0 &&
 				   LocalMousePos.Y <= TitleBarSize.Y;
     
 	return bIsOver;
@@ -225,8 +241,11 @@ bool UOHSMInventoryWidget::IsMouseOverTitleBar(const FGeometry& InGeometry, cons
 
 void UOHSMInventoryWidget::SetWidgetPosition(FVector2D NewPosition)
 {
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
+	if (MainBorder && MainBorder->Slot)
 	{
-		CanvasSlot->SetPosition(NewPosition);
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(MainBorder->Slot))
+		{
+			CanvasSlot->SetPosition(NewPosition);
+		}
 	}
 }

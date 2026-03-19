@@ -27,4 +27,33 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "HUD")
 	TObjectPtr<class UOHSMHUDWidget> OHSMHUDWidget;
 	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TSubclassOf<class UOHSMInventoryWidget> InventoryWidgetClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<class UOHSMInventoryWidget> InventoryWidget;
+	
+protected:
+	void InitializeHUDWidget();
+	
+	void InitializeInventoryWidget();
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "UI|Inventory")
+	void ToggleInventory();
+	
+	UFUNCTION(BlueprintPure, Category = "UI")
+	UOHSMInventoryWidget* GetInventoryWidget() const { return InventoryWidget; }
+    
+	UFUNCTION(BlueprintPure, Category = "UI")
+	UOHSMHUDWidget* GetHUDWidget() const { return OHSMHUDWidget; }
+	
+protected:
+	UPROPERTY()
+	bool bIsInventoryOpen = false;
+
+public:
+	UFUNCTION(BlueprintPure, Category = "UI|Inventory")
+	bool IsInventoryOpen() const { return bIsInventoryOpen; }
 };

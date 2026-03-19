@@ -10,7 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "VectorVMExperimental.h"
+#include "OHSMPlayerController.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMWidgetComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCombatComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
@@ -185,13 +185,13 @@ void AOHSMPlayerCharacter::EquipWeapon(class AOHSMWeaponBase* Weapon)
 
 void AOHSMPlayerCharacter::ToggleInventory()
 {
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
 	if (!PlayerController)
 	{
 		return;
 	}
 	
-	
+	PlayerController->ToggleInventory();
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)

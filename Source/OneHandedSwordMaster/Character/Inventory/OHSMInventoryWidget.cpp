@@ -48,7 +48,7 @@ void UOHSMInventoryWidget::NativeDestruct()
 	if (InventoryComponent && IsValid(InventoryComponent))
 	{
 		InventoryComponent->OnInventoryUpdated.RemoveDynamic(this, &UOHSMInventoryWidget::OnInventorySlotUpdated);
-		InventoryComponent->OnInventoryUpdated.RemoveDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
+		InventoryComponent->OnInventorySizeChanged.RemoveDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
 	}
 	
 	Super::NativeDestruct();
@@ -81,7 +81,7 @@ void UOHSMInventoryWidget::InitializeInventory(UOHSMInventoryComponent* InInvent
 	InventoryComponent = InInventory;
 	
 	InventoryComponent->OnInventoryUpdated.AddDynamic(this, &UOHSMInventoryWidget::OnInventorySlotUpdated);
-	InventoryComponent->OnInventoryUpdated.AddDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
+	InventoryComponent->OnInventorySizeChanged.AddDynamic(this, &UOHSMInventoryWidget::OnInventorySizeChanged);
 	
 	int32 SlotCount = InventoryComponent->GetSlotCount();
 	CreateSlots(SlotCount);

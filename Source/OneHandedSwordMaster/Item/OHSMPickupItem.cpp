@@ -56,12 +56,12 @@ void AOHSMPickupItem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	// Floating 효과
+	// Floating 효과 - InitialZ를 기준으로 위아래 진동
 	if (FloatingSpeed > 0.0f && FloatingHeight > 0.0f)
 	{
-		float NewZ = FMath::Sin(GetWorld()->GetTimeSeconds() * FloatingSpeed) * FloatingHeight;
+		float SineValue = FMath::Sin(GetWorld()->GetTimeSeconds() * FloatingSpeed);
 		FVector NewLocation = GetActorLocation();
-		NewLocation.Z = GetActorLocation().Z + NewZ * DeltaTime;
+		NewLocation.Z = InitialZ + SineValue * FloatingHeight;
 		SetActorLocation(NewLocation);
 	}
 }
@@ -71,6 +71,16 @@ void AOHSMPickupItem::InitializeItem(FName InItemID, int32 InCount, UDataTable* 
 	ItemID = InItemID;
 	ItemCount = InCount;
 	ItemDataTable = InItemDataTable;
+
+	// DataTable에서 해당 아이템의 Mesh와 Scale 적용
+	const FItemData* ItemData = GetItemData();
+	if (ItemData && ItemData->ItemMesh && ItemMesh)
+	{
+		ItemMesh->SetStaticMesh(ItemData->ItemMesh);
+		float Scale = FMath::Max(ItemData->MeshScale, 0.01f);
+		ItemMesh->SetRelativeScale3D(FVector(Scale));
+		ItemMesh->SetRelativeLocation(ItemData->MeshOffset);
+	}
 }
 
 const FItemData* AOHSMPickupItem::GetItemData() const

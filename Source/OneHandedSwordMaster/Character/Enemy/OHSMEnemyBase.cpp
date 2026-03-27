@@ -418,16 +418,24 @@ void AOHSMEnemyBase::DropItems()
     	
         int32 DropCount = FMath::RandRange(DropItemData.MinCount, DropItemData.MaxCount);
     	
-        FVector SpawnLocation = GetActorLocation();
-        SpawnLocation.Z += 50.0f;
-        
         FVector RandomOffset = FVector(
             FMath::RandRange(-100.0f, 100.0f),
             FMath::RandRange(-100.0f, 100.0f),
             0.0f
         );
-        SpawnLocation += RandomOffset;
-        
+        FVector SpawnLocation = GetActorLocation() + RandomOffset;
+
+        // 지면 Line Trace로 정확한 높이 찾기
+        FHitResult HitResult;
+        FVector TraceStart = FVector(SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z + 200.0f);
+        FVector TraceEnd   = FVector(SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z - 500.0f);
+        FCollisionQueryParams QueryParams;
+        QueryParams.AddIgnoredActor(this);
+        if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+        {
+            SpawnLocation.Z = HitResult.ImpactPoint.Z + 20.0f;
+        }
+
         FRotator SpawnRotation = FRotator::ZeroRotator;
         
         UE_LOG(LogTemp, Display, TEXT("[DropItems] [%d] 스폰 위치: (%.1f, %.1f, %.1f)"), 
@@ -443,11 +451,7 @@ void AOHSMEnemyBase::DropItems()
         
         if (DroppedItem)
         {
-
-            DroppedItem->ItemID = DropItemData.ItemID;
-            DroppedItem->ItemCount = DropCount;
-            DroppedItem->ItemDataTable = DropItemTable;
-        	
+            DroppedItem->InitializeItem(DropItemData.ItemID, DropCount, DropItemTable);
             DroppedItem->FinishSpawning(FTransform(SpawnRotation, SpawnLocation));
         }
         

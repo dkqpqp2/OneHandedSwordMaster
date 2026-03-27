@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "OneHandedSwordMaster/Data/OHSMItemData.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
+#include "OneHandedSwordMaster/Item/OHSMPickupItem.h"
 
 void UOHSMInventorySlotWidget::NativeConstruct()
 {
@@ -43,11 +44,11 @@ void UOHSMInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 		
 		if (GetClass())
 		{
-			UOHSMInventorySlotWidget* DragVisual = CreateWidget<UOHSMInventorySlotWidget>(GetWorld(), GetClass());
-            
+			UOHSMInventorySlotWidget* DragVisual = CreateWidget<UOHSMInventorySlotWidget>(GetOwningPlayer(), GetClass());
+
 			if (DragVisual)
 			{
-				DragVisual->UpdateSlot(SlotData);
+				DragVisual->InitializeSlot(SlotIndex, InventoryComponent);
 				DragVisual->SetRenderOpacity(0.7f);
                 
 				DragDropOp->DefaultDragVisual = DragVisual;
@@ -93,6 +94,19 @@ bool UOHSMInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 	return bSuccess; 
 }
 
+void UOHSMInventorySlotWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragCancelled(InDragDropEvent, InOperation);
+
+	SetDragging(false);
+
+	// 슬롯에 아이템이 있을 때만 월드에 드롭
+	if (!SlotData.IsEmpty())
+	{
+		DropItemToWorld();
+	}
+}
+
 void UOHSMInventorySlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
@@ -117,7 +131,16 @@ void UOHSMInventorySlotWidget::InitializeSlot(int32 InSlotIndex, UOHSMInventoryC
 {
 	SlotIndex = InSlotIndex;
 	InventoryComponent = InInventory;
-	
+
+	if (TooltipWidgetClass && GetOwningPlayer())
+	{
+		SlotTooltipWidget = CreateWidget<UOHSMInventoryTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
+		if (SlotTooltipWidget)
+		{
+			SetToolTip(SlotTooltipWidget);
+		}
+	}
+
 	if (InventoryComponent)
 	{
 		const FInventorySlot* InventorySlot = InventoryComponent->GetSlot(SlotIndex);
@@ -152,6 +175,59 @@ void UOHSMInventorySlotWidget::SetDragging(bool bIsDragging)
 	}
 }
 
+void UOHSMInventorySlotWidget::DropItemToWorld()
+{
+	if (!InventoryComponent || !DropItemClass || SlotData.IsEmpty())
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	APawn* Pawn = PC->GetPawn();
+	if (!Pawn)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// 플레이어 앞쪽 100 유닛 위치에 스폰
+	FVector SpawnLocation = Pawn->GetActorLocation()
+		+ Pawn->GetActorForwardVector() * 100.0f;
+
+	// 지면 Line Trace로 정확한 높이 찾기
+	FHitResult HitResult;
+	FVector TraceStart = FVector(SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z + 200.0f);
+	FVector TraceEnd   = FVector(SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z - 500.0f);
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(Pawn);
+	if (World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+	{
+		SpawnLocation.Z = HitResult.ImpactPoint.Z + 20.0f;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AOHSMPickupItem* SpawnedItem = World->SpawnActor<AOHSMPickupItem>(
+		DropItemClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
+	if (SpawnedItem)
+	{
+		SpawnedItem->InitializeItem(SlotData.ItemID, SlotData.Count, InventoryComponent->GetItemDataTable());
+		InventoryComponent->RemoveItemFromSlot(SlotIndex, SlotData.Count);
+	}
+}
+
 const FItemData* UOHSMInventorySlotWidget::GetItemData() const
 {
 	if (InventoryComponent)
@@ -170,11 +246,13 @@ void UOHSMInventorySlotWidget::RefreshUI()
 		{
 			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
-		
+
 		if (ItemCount)
 		{
 			ItemCount->SetVisibility(ESlateVisibility::Hidden);
 		}
+
+		SetToolTip(nullptr);
 	}
 	else
 	{
@@ -186,7 +264,7 @@ void UOHSMInventorySlotWidget::RefreshUI()
 				ItemIcon->SetBrushFromTexture(ItemData->ItemIcon);
 				ItemIcon->SetVisibility(ESlateVisibility::Visible);
 			}
-			
+
 			if (ItemCount)
 			{
 				if (SlotData.Count > 1)
@@ -198,6 +276,12 @@ void UOHSMInventorySlotWidget::RefreshUI()
 				{
 					ItemCount->SetVisibility(ESlateVisibility::Hidden);
 				}
+			}
+
+			if (SlotTooltipWidget)
+			{
+				SlotTooltipWidget->UpdateTooltip(*ItemData);
+				SetToolTip(SlotTooltipWidget);
 			}
 		}
 	}

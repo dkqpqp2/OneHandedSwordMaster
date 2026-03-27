@@ -92,7 +92,9 @@ public:
 	
 public:
 	const FItemData* GetItemData(FName ItemID) const;
-	
+
+	UDataTable* GetItemDataTable() const { return ItemDataTable; }
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
 	void ClearInventory();
 };

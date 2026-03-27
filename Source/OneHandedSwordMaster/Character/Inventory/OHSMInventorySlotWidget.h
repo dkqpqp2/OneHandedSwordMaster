@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "OneHandedSwordMaster/Data/OHSMItemData.h"
+#include "OneHandedSwordMaster/Character/Inventory/OHSMInventoryTooltipWidget.h"
 #include "OHSMInventorySlotWidget.generated.h"
+
+class AOHSMPickupItem;
 
 /**
  * 
@@ -23,8 +26,10 @@ protected:
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-    
+
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UImage> ItemIcon;
@@ -44,6 +49,16 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<class UOHSMInventoryComponent> InventoryComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Slot|Tooltip")
+	TSubclassOf<UOHSMInventoryTooltipWidget> TooltipWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Slot|Tooltip")
+	TObjectPtr<UOHSMInventoryTooltipWidget> SlotTooltipWidget;
+
+	// 월드에 드롭할 때 스폰할 아이템 클래스 (BP_PickupItem 등 지정)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Slot|Drop")
+	TSubclassOf<AOHSMPickupItem> DropItemClass;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory Slot")
@@ -65,6 +80,8 @@ public:
 	void SetDragging(bool bIsDragging);
 protected:
 	const FItemData* GetItemData() const;
-	
+
 	void RefreshUI();
+
+	void DropItemToWorld();
 };

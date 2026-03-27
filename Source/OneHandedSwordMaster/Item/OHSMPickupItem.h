@@ -46,7 +46,7 @@ public:
 	TObjectPtr<class UDataTable> ItemDataTable;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
-	float FloatingHeight = 50.0f;
+	float FloatingHeight = 20.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
 	float FloatingSpeed = 2.0f;

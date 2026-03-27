@@ -48,7 +48,7 @@ public:
     
 	UFUNCTION(BlueprintPure, Category = "UI")
 	UOHSMHUDWidget* GetHUDWidget() const { return OHSMHUDWidget; }
-	
+
 protected:
 	UPROPERTY()
 	bool bIsInventoryOpen = false;
@@ -56,4 +56,7 @@ protected:
 public:
 	UFUNCTION(BlueprintPure, Category = "UI|Inventory")
 	bool IsInventoryOpen() const { return bIsInventoryOpen; }
+	
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetIsInventoryOpen(bool bOpen) { bIsInventoryOpen = bOpen; }
 };

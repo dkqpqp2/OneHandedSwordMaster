@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "OneHandedSwordMaster/Data/OHSMCombatData.h"
 #include "NiagaraSystem.h"
+#include "OneHandedSwordMaster/Data/OHSMItemData.h"
 #include "OHSMEnemyBase.generated.h"
 
 UENUM(BlueprintType)
@@ -68,6 +69,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Leash")
 	bool bHealOnLeash = true;
+	
+	UPROPERTY()
+	bool bIsDead = false;
 
 	/** 이동 속도 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Movement")
@@ -164,4 +168,22 @@ protected:
 	/** 데미지 받았을 때 (Passive용) */
 	UFUNCTION()
 	void OnDamaged(float CurrentHealth, float MaxHealth, float Damage, AActor* DamageCauser);
+	
+	
+// ItemDrop
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Drop")
+	TArray<FDropItemData> DropItem;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Drop")
+	TObjectPtr<UDataTable> DropItemTable;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Drop")
+	TMap<FName, TSubclassOf<class AOHSMPickupItem>> PickupItemClasses;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Drop")
+	TSubclassOf<class AOHSMPickupItem> PickupItemClass;
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Item Drop")
+	void DropItems();
 };

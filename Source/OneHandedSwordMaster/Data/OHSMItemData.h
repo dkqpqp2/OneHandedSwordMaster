@@ -83,3 +83,21 @@ struct FInventorySlot
 		Count(InCount)
 	{}
 };
+
+USTRUCT(BlueprintType)
+struct FDropItemData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ItemID;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DropChance = 0.5f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1"))
+	int32 MinCount = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1"))
+	int32 MaxCount = 1;
+};

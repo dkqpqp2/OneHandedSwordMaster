@@ -13,62 +13,128 @@ void UOHSMInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	Slots.SetNum(SlotCount);
+	Slots.SetNum(MaxSlotCount);
+	
+	for (int32 i = 0; i < Slots.Num(); ++i)
+	{
+		Slots[i].ItemID = FName(NAME_None);
+		Slots[i].Count = 0;
+	}
 }
 
 int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count)
 {
-	if (ItemID.IsNone() || Count <= 0)
-	{
-		return 0;
-	}
-	
-	const FItemData* ItemData = GetItemData(ItemID);
-	if (!ItemData)
-	{
-		return 0;
-	}
-	
-	int32 RemainingCount = Count;
-	int32 MaxStack = ItemData->MaxStackSize;
-	
-	for (int32 i = 0; i < Slots.Num() && RemainingCount > 0; ++i)
-	{
-		FInventorySlot& Slot = Slots[i];
-		
-		if (Slot.ItemID == ItemID && Slot.Count < MaxStack)
-		{
-			int32 AvailableSpace = MaxStack - Slot.Count;
-			int32 AddCount = FMath::Min(AvailableSpace, RemainingCount);
-			
-			Slot.Count += AddCount;
-			RemainingCount -= AddCount;
-			
-			OnInventoryUpdated.Broadcast(i);
-		}
-	}
-	
-	while (RemainingCount > 0)
-	{
-		int32 EmptySlot = FindEmptySlot();
-		
-		if (EmptySlot == -1)
-		{
-			break;
-		}
-		
-		int32 AddCount = FMath::Min(MaxStack, RemainingCount);
-		
-		Slots[EmptySlot].ItemID = ItemID;
-		Slots[EmptySlot].Count= AddCount;
-		RemainingCount -= AddCount;
-		
-		OnInventoryUpdated.Broadcast(EmptySlot);
-	}
-	
-	int32 ActuallyAdded = Count - RemainingCount;
-	
-	return ActuallyAdded;
+	UE_LOG(LogTemp, Error, TEXT(""));
+    UE_LOG(LogTemp, Error, TEXT("========================================"));
+    UE_LOG(LogTemp, Error, TEXT("[Inventory] AddItem 시작"));
+    UE_LOG(LogTemp, Error, TEXT("[Inventory] ItemID: %s"), *ItemID.ToString());
+    UE_LOG(LogTemp, Error, TEXT("[Inventory] Count: %d"), Count);
+    UE_LOG(LogTemp, Error, TEXT("========================================"));
+    
+    // ==================== 1. 유효성 체크 ====================
+    if (ItemID.IsNone() || Count <= 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Inventory] ❌ ItemID None 또는 Count <= 0"));
+        return 0;
+    }
+    
+    // ==================== 2. ItemDataTable 확인 ====================
+    if (!ItemDataTable)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Inventory] ❌❌❌ ItemDataTable nullptr!"));
+        return 0;
+    }
+    
+    UE_LOG(LogTemp, Display, TEXT("[Inventory] ✅ ItemDataTable: %s"), *ItemDataTable->GetName());
+    
+    // ==================== 3. ItemData 가져오기 ====================
+    const FItemData* ItemData = ItemDataTable->FindRow<FItemData>(ItemID, TEXT("AddItem"));
+    if (!ItemData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Inventory] ❌❌❌ ItemData 없음! ItemID: %s"), *ItemID.ToString());
+        UE_LOG(LogTemp, Error, TEXT("[Inventory] DataTable에 이 ItemID가 없어요!"));
+        return 0;
+    }
+    
+    UE_LOG(LogTemp, Display, TEXT("[Inventory] ✅ ItemData 찾음: %s"), *ItemData->ItemName.ToString());
+    UE_LOG(LogTemp, Display, TEXT("[Inventory] MaxStackSize: %d"), ItemData->MaxStackSize);
+    
+    // ==================== 4. 슬롯 정보 ====================
+    UE_LOG(LogTemp, Display, TEXT("[Inventory] 총 슬롯 개수: %d"), Slots.Num());
+    
+    int32 EmptyCount = 0;
+    for (int32 i = 0; i < Slots.Num(); ++i)
+    {
+        if (Slots[i].ItemID.IsNone())
+        {
+            EmptyCount++;
+        }
+        else
+        {
+            UE_LOG(LogTemp, Display, TEXT("[Inventory] 슬롯 [%d]: %s x%d"), 
+                i, *Slots[i].ItemID.ToString(), Slots[i].Count);
+        }
+    }
+    
+    UE_LOG(LogTemp, Display, TEXT("[Inventory] 빈 슬롯 개수: %d"), EmptyCount);
+    
+    // ==================== 5. 기존 슬롯에 추가 시도 ====================
+    int32 RemainingCount = Count;
+    int32 MaxStack = ItemData->MaxStackSize;
+    
+    for (int32 i = 0; i < Slots.Num() && RemainingCount > 0; ++i)
+    {
+        FInventorySlot& Slot = Slots[i];
+        
+        if (Slot.ItemID == ItemID && Slot.Count < MaxStack)
+        {
+            int32 AvailableSpace = MaxStack - Slot.Count;
+            int32 AddCount = FMath::Min(AvailableSpace, RemainingCount);
+            
+            Slot.Count += AddCount;
+            RemainingCount -= AddCount;
+            
+            OnInventoryUpdated.Broadcast(i);
+            
+            UE_LOG(LogTemp, Display, TEXT("[Inventory] 슬롯 [%d]에 추가: +%d (총: %d)"), 
+                i, AddCount, Slot.Count);
+        }
+    }
+    
+    // ==================== 6. 새 슬롯에 추가 시도 ====================
+    while (RemainingCount > 0)
+    {
+        int32 EmptySlot = FindEmptySlot();
+        
+        UE_LOG(LogTemp, Display, TEXT("[Inventory] FindEmptySlot 결과: %d"), EmptySlot);
+        
+        if (EmptySlot == -1)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[Inventory] ❌ 빈 슬롯 없음! 남은 개수: %d"), RemainingCount);
+            break;
+        }
+        
+        int32 AddCount = FMath::Min(MaxStack, RemainingCount);
+        
+        Slots[EmptySlot].ItemID = ItemID;
+        Slots[EmptySlot].Count = AddCount;
+        RemainingCount -= AddCount;
+        
+        OnInventoryUpdated.Broadcast(EmptySlot);
+        
+        UE_LOG(LogTemp, Display, TEXT("[Inventory] 슬롯 [%d]에 새 아이템: %s x%d"), 
+            EmptySlot, *ItemID.ToString(), AddCount);
+    }
+    
+    // ==================== 7. 결과 ====================
+    int32 ActuallyAdded = Count - RemainingCount;
+    
+    UE_LOG(LogTemp, Error, TEXT("[Inventory] 최종 결과: %d개 추가됨 (남은 개수: %d)"), 
+        ActuallyAdded, RemainingCount);
+    UE_LOG(LogTemp, Error, TEXT("========================================"));
+    UE_LOG(LogTemp, Error, TEXT(""));
+    
+    return ActuallyAdded;
 }
 
 int32 UOHSMInventoryComponent::RemoveItem(FName ItemID, int32 Count)

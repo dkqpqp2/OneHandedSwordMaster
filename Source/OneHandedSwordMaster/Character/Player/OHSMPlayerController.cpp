@@ -81,6 +81,11 @@ void AOHSMPlayerController::InitializeInventoryWidget()
 
 void AOHSMPlayerController::ToggleInventory()
 {
+	if (!InventoryWidget)
+	{
+		return;
+	}
+	
 	if (InventoryWidget)
 	{
 		bool bWillOpen = (InventoryWidget->GetVisibility() != ESlateVisibility::Visible);
@@ -89,12 +94,12 @@ void AOHSMPlayerController::ToggleInventory()
 		
 		if (bWillOpen)
 		{
-			FInputModeGameAndUI GameAndUIMode;
+			FInputModeUIOnly UIOnlyMode;
 			
-			GameAndUIMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
-			GameAndUIMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			UIOnlyMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+			UIOnlyMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			
-			SetInputMode(GameAndUIMode);
+			SetInputMode(UIOnlyMode);
 			SetShowMouseCursor(true);
 			
 			bIsInventoryOpen = true;

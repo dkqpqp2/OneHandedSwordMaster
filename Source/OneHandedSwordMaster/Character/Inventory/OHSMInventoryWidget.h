@@ -10,6 +10,20 @@
 /**
  * 
  */
+UENUM(BlueprintType)
+enum class EResizeHandle : uint8
+{
+	None,
+	TopLeft,
+	Top,
+	TopRight,
+	Right,
+	BottomRight,
+	Bottom,
+	BottomLeft,
+	Left
+};
+
 UCLASS()
 class ONEHANDEDSWORDMASTER_API UOHSMInventoryWidget : public UUserWidget
 {
@@ -20,6 +34,7 @@ protected:
 	virtual void NativeDestruct() override;
 	
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -40,6 +55,19 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UScrollBox> ScrollContainer;
 	
+	// ResizeHandle
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> ResizeHandleBottomRight;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> ResizeHandleRight;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> ResizeHandleBottom;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> ResizeHandleBottomLeft;
+	
 protected:
 	UPROPERTY()
 	TArray<TObjectPtr<class UOHSMInventorySlotWidget>> SlotWidgets;
@@ -58,7 +86,7 @@ protected:
 	FVector2D MinSize = FVector2D(440, 400);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Size")
-	FVector2D MaxSize = FVector2D(840, 760);
+	FVector2D MaxSize = FVector2D(1200, 900);
 	
 	UPROPERTY()
 	FVector2D CurrentSize = FVector2D(520, 480);
@@ -72,6 +100,22 @@ protected:
 	
 	UPROPERTY()
 	FVector2D DragStartWidgetPos;
+	
+	// Resize 상태
+	UPROPERTY()
+	bool bIsResizing = false;
+    
+	UPROPERTY()
+	EResizeHandle CurrentResizeHandle = EResizeHandle::None;
+    
+	UPROPERTY()
+	FVector2D ResizeStartMousePos;
+    
+	UPROPERTY()
+	FVector2D ResizeStartSize;
+    
+	UPROPERTY()
+	FVector2D ResizeStartPosition;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -113,5 +157,11 @@ protected:
 	
 	bool IsMouseOverTitleBar(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
 	
+	EResizeHandle GetResizeHandleAtPosition(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
+	
 	void SetWidgetPosition(FVector2D NewPosition);
+	
+	void SetWidgetSize(FVector2D NewSize);
+    
+	void UpdateGridColumns();
 };

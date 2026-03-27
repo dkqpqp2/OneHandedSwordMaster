@@ -2,9 +2,9 @@
 /shelf/
 /workspace.xml
 # Rider에서 무시된 파일
-/projectSettingsUpdater.xml
-/contentModel.xml
 /.idea.OneHandedSwordMaster.iml
+/contentModel.xml
+/projectSettingsUpdater.xml
 /modules.xml
 # 쿼리 파일을 포함한 무시된 디폴트 폴더
 /queries/

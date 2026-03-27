@@ -4,6 +4,7 @@
 #include "OHSMEnemyBase.h"
 
 #include "AIController.h"
+#include "BrainComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -13,10 +14,12 @@
 #include "NiagaraFunctionLibrary.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Engine/DamageEvents.h"
+#include "OneHandedSwordMaster/Item/OHSMPickupItem.h"
 
 AOHSMEnemyBase::AOHSMEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	
 	
 	HealthComponent = CreateDefaultSubobject<UOHSMHealthComponent>(TEXT("HealthComponent"));
 	
@@ -206,32 +209,35 @@ bool AOHSMEnemyBase::IsInAttackRange() const
 }
 
 void AOHSMEnemyBase::SetAIState(EEnemyAIState NewState)
-{
-	if (CurrentState == NewState)
-	{
-		return;
-	}
-
-	CurrentState = NewState;
-
-	UE_LOG(LogTemp, Log, TEXT("[Enemy] %s - 상태 변경: %d"), *GetName(), (int32)NewState);
-
-	// 상태별 속도 조정
-	switch (CurrentState)
-	{
-		case EEnemyAIState::Patrol:
-			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-			break;
-		case EEnemyAIState::Run:
-			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-			break;
-		case EEnemyAIState::Attacking:
-			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-			break;
-		default:
-			break;
-	}
-}
+ {
+ 	if (CurrentState == NewState)
+ 	{
+ 		return;
+ 	}
+ 
+ 	CurrentState = NewState;
+ 
+ 	UE_LOG(LogTemp, Log, TEXT("[Enemy] %s - 상태 변경: %d"), *GetName(), (int32)NewState);
+ 
+ 	// 상태별 속도 조정
+ 	switch (CurrentState)
+ 	{
+ 		case EEnemyAIState::Patrol:
+ 			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+ 			break;
+ 		case EEnemyAIState::Run:
+ 			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+ 			break;
+ 		case EEnemyAIState::Attacking:
+ 			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+ 			break;
+ 		case EEnemyAIState::Dead:
+ 			GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+ 			break;
+ 		default:
+ 			break;
+ 	}
+ }
 
 bool AOHSMEnemyBase::IsOutOfLeashRange() const
 {
@@ -343,21 +349,23 @@ void AOHSMEnemyBase::OnDeath(AActor* Killer)
 
 	SetAIState(EEnemyAIState::Dead);
 
-	// 레그돌 활성화
-	if (USkeletalMeshComponent* EnemyMesh = GetMesh())
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{
-		EnemyMesh->SetSimulatePhysics(true);
-		EnemyMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+		AIController->StopMovement();
+		AIController->BrainComponent->StopLogic(TEXT("Dead"));
 	}
 
 	// 충돌 비활성화
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// DetectionSphere 비활성화
 	if (DetectionSphere)
 	{
 		DetectionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
+	DropItems();
 
 	// 5초 후 제거
 	SetLifeSpan(5.0f);
@@ -372,6 +380,78 @@ void AOHSMEnemyBase::OnDamaged(float CurrentHealth, float MaxHealth, float Damag
 		SetTarget(DamageCauser);
 		SetAIState(EEnemyAIState::Run);
 	}
+}
+
+void AOHSMEnemyBase::DropItems()
+{	
+	if (!DropItemTable)
+	{
+        return;
+    }
+
+    for (int32 i = 0; i < DropItem.Num(); i++)
+    {
+        const FDropItemData& DropItemData = DropItem[i];
+
+        float RandomValue = FMath::FRand();
+        
+        if (RandomValue > DropItemData.DropChance)
+        {
+            continue;
+        }
+
+        TSubclassOf<AOHSMPickupItem> PickupClass = nullptr;
+        
+        if (TSubclassOf<AOHSMPickupItem>* FoundClass = PickupItemClasses.Find(DropItemData.ItemID))
+        {
+            PickupClass = *FoundClass;
+        }
+        else if (PickupItemClass)
+        {
+            PickupClass = PickupItemClass;
+
+        }
+        else
+        {
+            continue;
+        }
+    	
+        int32 DropCount = FMath::RandRange(DropItemData.MinCount, DropItemData.MaxCount);
+    	
+        FVector SpawnLocation = GetActorLocation();
+        SpawnLocation.Z += 50.0f;
+        
+        FVector RandomOffset = FVector(
+            FMath::RandRange(-100.0f, 100.0f),
+            FMath::RandRange(-100.0f, 100.0f),
+            0.0f
+        );
+        SpawnLocation += RandomOffset;
+        
+        FRotator SpawnRotation = FRotator::ZeroRotator;
+        
+        UE_LOG(LogTemp, Display, TEXT("[DropItems] [%d] 스폰 위치: (%.1f, %.1f, %.1f)"), 
+            i, SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z);
+    	
+        AOHSMPickupItem* DroppedItem = GetWorld()->SpawnActorDeferred<AOHSMPickupItem>(
+            PickupClass,
+            FTransform(SpawnRotation, SpawnLocation),
+            this,
+            nullptr,
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+        );
+        
+        if (DroppedItem)
+        {
+
+            DroppedItem->ItemID = DropItemData.ItemID;
+            DroppedItem->ItemCount = DropCount;
+            DroppedItem->ItemDataTable = DropItemTable;
+        	
+            DroppedItem->FinishSpawning(FTransform(SpawnRotation, SpawnLocation));
+        }
+        
+    }
 }
 
 

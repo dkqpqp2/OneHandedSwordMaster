@@ -54,6 +54,19 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> InventoryAction;
+
+	// 포션 퀵슬롯 단축키 (1, 2, 3, 4)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> QuickPotionSlot1Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> QuickPotionSlot2Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> QuickPotionSlot3Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> QuickPotionSlot4Action;
 	
 // ============= 무기 시스템 =============
 protected:
@@ -78,10 +91,19 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UOHSMInventoryComponent> InventoryComponent;
-	
+
 public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	UOHSMInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+// 퀵슬롯 컴포넌트
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "QuickSlot", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMQuickSlotComponent> QuickSlotComponent;
+
+public:
+	UFUNCTION(BlueprintPure, Category = "QuickSlot")
+	UOHSMQuickSlotComponent* GetQuickSlotComponent() const { return QuickSlotComponent; }
 	
 protected:
 	void ToggleInventory();
@@ -91,6 +113,11 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Attack();
 	void SetDead();
+
+	void UsePotionSlot1();
+	void UsePotionSlot2();
+	void UsePotionSlot3();
+	void UsePotionSlot4();
 	
 public:
 	TObjectPtr<class USpringArmComponent> GetCameraBoom() const { return CameraBoom; }

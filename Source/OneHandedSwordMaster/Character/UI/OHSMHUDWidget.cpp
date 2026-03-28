@@ -6,8 +6,12 @@
 #include "OHSMExpBar.h"
 #include "OHSMHpBar.h"
 #include "OHSMManaBar.h"
+#include "OHSMPickupNotifyWidget.h"
+#include "OHSMQuickSlotWidget.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
 #include "Components/ProgressBar.h"
 #include "Kismet/GamePlayStatics.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
 
@@ -49,6 +53,8 @@ void UOHSMHUDWidget::InitializeHUD()
 	}
 	
 	StatComp->OnHpChanged.AddUObject(this, &UOHSMHUDWidget::UpdateHp);
+
+	InitializeQuickSlots();
 	
 	StatComp->OnManaChanged.AddUObject(this, &UOHSMHUDWidget::UpdateMana);
 	
@@ -57,6 +63,28 @@ void UOHSMHUDWidget::InitializeHUD()
 	UpdateHp(StatComp->GetCurrentHp(), StatComp->GetMaxHp());
 	UpdateMana(StatComp->GetCurrentMana(), StatComp->GetMaxMana());
 	OnExpChanged(0, StatComp->GetLevel());
+}
+
+void UOHSMHUDWidget::InitializeQuickSlots()
+{
+	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwningPlayerPawn());
+	if (!Player)
+	{
+		return;
+	}
+
+	UOHSMQuickSlotComponent* QuickSlotComp = Player->GetQuickSlotComponent();
+	UOHSMInventoryComponent* InventoryComp = Player->GetInventoryComponent();
+
+	if (WidgetPotionSlots)
+	{
+		WidgetPotionSlots->InitializeSlots(QuickSlotComp, InventoryComp);
+	}
+
+	if (WidgetSkillSlots)
+	{
+		WidgetSkillSlots->InitializeSlots(QuickSlotComp, InventoryComp);
+	}
 }
 
 void UOHSMHUDWidget::UpdateHp(float CurrentHp, float MaxHp)
@@ -79,6 +107,35 @@ void UOHSMHUDWidget::UpdateMana(float CurrentMana, float MaxMana)
 			FString::Printf(TEXT("%.0f / %.0f"), CurrentMana, MaxMana)
 		));
 	}
+}
+
+void UOHSMHUDWidget::ShowItemPickup(FName ItemID, int32 Count)
+{
+	if (!PickupNotifyWidget)
+	{
+		return;
+	}
+
+	// InventoryComponent에서 ItemData 가져오기
+	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwningPlayerPawn());
+	if (!Player)
+	{
+		return;
+	}
+
+	UOHSMInventoryComponent* InventoryComp = Player->GetInventoryComponent();
+	if (!InventoryComp)
+	{
+		return;
+	}
+
+	const FItemData* ItemData = InventoryComp->GetItemData(ItemID);
+	if (!ItemData)
+	{
+		return;
+	}
+
+	PickupNotifyWidget->ShowItemPickup(*ItemData, Count);
 }
 
 void UOHSMHUDWidget::OnExpChanged(int32 CurrentExp, int32 RequiredExp)

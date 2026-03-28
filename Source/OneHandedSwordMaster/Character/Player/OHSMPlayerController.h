@@ -59,4 +59,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void SetIsInventoryOpen(bool bOpen) { bIsInventoryOpen = bOpen; }
+
+protected:
+	UFUNCTION()
+	void OnItemPickedUp(FName ItemID, int32 Count);
 };

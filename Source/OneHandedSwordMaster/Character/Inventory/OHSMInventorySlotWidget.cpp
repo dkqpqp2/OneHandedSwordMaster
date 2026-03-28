@@ -9,6 +9,8 @@
 #include "OneHandedSwordMaster/Data/OHSMItemData.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Item/OHSMPickupItem.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMQuickSlotEntryWidget.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
 
 void UOHSMInventorySlotWidget::NativeConstruct()
 {
@@ -73,25 +75,56 @@ bool UOHSMInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 		return false;
 	}
 	
+	// 퀵슬롯에서 인벤토리로 드롭
+	UOHSMQuickSlotEntryWidget* DraggedQuickSlot = Cast<UOHSMQuickSlotEntryWidget>(InOperation->Payload);
+	if (DraggedQuickSlot)
+	{
+		DraggedQuickSlot->SetRenderOpacity(1.0f);
+
+		UOHSMQuickSlotComponent* QuickSlotComp = DraggedQuickSlot->GetQuickSlotComponent();
+		if (QuickSlotComp)
+		{
+			FName ItemID = QuickSlotComp->GetSlotItemID(DraggedQuickSlot->GetSlotIndex());
+
+			// 아이템이 인벤토리 어느 슬롯에 있는지 찾아서 드롭한 슬롯 위치로 이동
+			if (!ItemID.IsNone())
+			{
+				int32 ItemSlotIndex = InventoryComponent->FindItemSlot(ItemID, false);
+				int32 TargetSlotIndex = this->GetSlotIndex();
+
+				if (ItemSlotIndex != INDEX_NONE && ItemSlotIndex != TargetSlotIndex)
+				{
+					InventoryComponent->SwapSlots(ItemSlotIndex, TargetSlotIndex);
+				}
+			}
+
+			// 퀵슬롯 해제 + UI 즉시 갱신
+			QuickSlotComp->ClearSlot(DraggedQuickSlot->GetSlotIndex());
+			DraggedQuickSlot->RefreshSlot();
+		}
+		return true;
+	}
+
+	// 인벤토리 슬롯끼리 스왑
 	UOHSMInventorySlotWidget* DraggedSlot = Cast<UOHSMInventorySlotWidget>(InOperation->Payload);
 	if (!DraggedSlot)
 	{
 		return false;
 	}
-	
+
 	DraggedSlot->SetDragging(false);
 
 	int32 FromIndex = DraggedSlot->GetSlotIndex();
 	int32 ToIndex = this->GetSlotIndex();
-	
+
 	if (FromIndex == ToIndex)
 	{
 		return false;
 	}
-	
+
 	bool bSuccess = InventoryComponent->SwapSlots(FromIndex, ToIndex);
-	
-	return bSuccess; 
+
+	return bSuccess;
 }
 
 void UOHSMInventorySlotWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)

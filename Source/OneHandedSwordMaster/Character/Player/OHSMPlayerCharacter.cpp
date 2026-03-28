@@ -14,6 +14,7 @@
 #include "OneHandedSwordMaster/Character/UI/OHSMWidgetComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCombatComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMHpBar.h"
@@ -95,6 +96,8 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	}
 	
 	InventoryComponent = CreateDefaultSubobject<UOHSMInventoryComponent>(TEXT("InventoryComponent"));
+
+	QuickSlotComponent = CreateDefaultSubobject<UOHSMQuickSlotComponent>(TEXT("QuickSlotComponent"));
 }
 
 void AOHSMPlayerCharacter::PostInitializeComponents()
@@ -156,6 +159,12 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		
 		// 인벤토리
 		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Completed, this, &AOHSMPlayerCharacter::ToggleInventory);
+
+		// 포션 퀵슬롯 (1, 2, 3, 4)
+		if (QuickPotionSlot1Action) EnhancedInputComponent->BindAction(QuickPotionSlot1Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot1);
+		if (QuickPotionSlot2Action) EnhancedInputComponent->BindAction(QuickPotionSlot2Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot2);
+		if (QuickPotionSlot3Action) EnhancedInputComponent->BindAction(QuickPotionSlot3Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot3);
+		if (QuickPotionSlot4Action) EnhancedInputComponent->BindAction(QuickPotionSlot4Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot4);
 	}
 	else
 	{
@@ -311,6 +320,11 @@ void AOHSMPlayerCharacter::SetupHUDWidget(class UOHSMHUDWidget* InHUDWidget)
 		InHUDWidget->OnExpChanged(0, PlayerStat->GetCurrentHp());
 	}
 }
+
+void AOHSMPlayerCharacter::UsePotionSlot1() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(0); }
+void AOHSMPlayerCharacter::UsePotionSlot2() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(1); }
+void AOHSMPlayerCharacter::UsePotionSlot3() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(2); }
+void AOHSMPlayerCharacter::UsePotionSlot4() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(3); }
 
 void AOHSMPlayerCharacter::AddExp(int32 Amount)
 {

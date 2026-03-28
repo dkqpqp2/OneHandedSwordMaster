@@ -128,12 +128,18 @@ int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count)
     
     // ==================== 7. 결과 ====================
     int32 ActuallyAdded = Count - RemainingCount;
-    
-    UE_LOG(LogTemp, Error, TEXT("[Inventory] 최종 결과: %d개 추가됨 (남은 개수: %d)"), 
+
+    UE_LOG(LogTemp, Error, TEXT("[Inventory] 최종 결과: %d개 추가됨 (남은 개수: %d)"),
         ActuallyAdded, RemainingCount);
     UE_LOG(LogTemp, Error, TEXT("========================================"));
     UE_LOG(LogTemp, Error, TEXT(""));
-    
+
+    // 실제로 추가된 경우에만 알림 브로드캐스트
+    if (ActuallyAdded > 0)
+    {
+        OnItemAdded.Broadcast(ItemID, ActuallyAdded);
+    }
+
     return ActuallyAdded;
 }
 

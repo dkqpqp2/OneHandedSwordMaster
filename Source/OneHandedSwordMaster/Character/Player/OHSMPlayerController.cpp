@@ -6,6 +6,7 @@
 #include "OHSMPlayerCharacter.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMHUDWidget.h"
 #include "OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 
 AOHSMPlayerController::AOHSMPlayerController()
 {
@@ -73,10 +74,21 @@ void AOHSMPlayerController::InitializeInventoryWidget()
 		if (InventoryComp)
 		{
 			InventoryWidget->InitializeInventory(InventoryComp);
+
+		// 아이템 획득 시 HUD에 알림 표시
+		InventoryComp->OnItemAdded.AddDynamic(this, &AOHSMPlayerController::OnItemPickedUp);
 		}
 	}
-	
+
 	InventoryWidget->CloseInventory();
+}
+
+void AOHSMPlayerController::OnItemPickedUp(FName ItemID, int32 Count)
+{
+	if (OHSMHUDWidget)
+	{
+		OHSMHUDWidget->ShowItemPickup(ItemID, Count);
+	}
 }
 
 void AOHSMPlayerController::ToggleInventory()

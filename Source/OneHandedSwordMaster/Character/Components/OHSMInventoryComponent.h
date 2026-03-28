@@ -12,6 +12,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, int32, SlotInde
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySizeChanged, int32, NewSlotCount);
 
+// 아이템 획득 알림용 (ItemID, 획득 개수)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Count);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ONEHANDEDSWORDMASTER_API UOHSMInventoryComponent : public UActorComponent
 {
@@ -26,9 +29,12 @@ protected:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventoryUpdated OnInventoryUpdated;
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventorySizeChanged OnInventorySizeChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnItemAdded OnItemAdded;
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")

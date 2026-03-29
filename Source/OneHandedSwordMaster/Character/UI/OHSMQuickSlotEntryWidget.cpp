@@ -163,20 +163,12 @@ void UOHSMQuickSlotEntryWidget::NativeOnDragDetected(
 	}
 
 	DragOp->Payload = this;
-
-	// 드래그 비주얼: 현재 슬롯과 동일하게 복사
-	UOHSMQuickSlotEntryWidget* DragVisual = CreateWidget<UOHSMQuickSlotEntryWidget>(GetOwningPlayer(), GetClass());
-	if (DragVisual)
-	{
-		DragVisual->InitializeEntry(SlotIndex, TEXT(""), QuickSlotComponent, InventoryComponent);
-		DragVisual->SetRenderOpacity(0.7f);
-		DragOp->DefaultDragVisual = DragVisual;
-	}
-
+	// 별도 드래그 비주얼 없이 원본 슬롯을 반투명하게 표시
+	// (별도 위젯을 생성하면 드롭 후 인벤토리 배경색에 영향을 줌)
+	DragOp->DefaultDragVisual = this;
 	DragOp->Pivot = EDragPivot::MouseDown;
 	OutOperation = DragOp;
 
-	// 드래그 중 원본 반투명 처리
 	SetRenderOpacity(0.5f);
 }
 

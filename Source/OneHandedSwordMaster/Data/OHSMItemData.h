@@ -33,24 +33,27 @@ struct FItemData : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UTexture2D> ItemIcon;
-
-	// 월드에 드롭됐을 때 표시할 3D 메시
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UStaticMesh> ItemMesh;
-
-	// 월드에 드롭됐을 때 메시 크기 (기본값 1.0 = 원본 크기)
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	float MeshScale = 1.0f;
-
-	// Pivot이 잘못된 메시의 위치 보정값
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FVector MeshOffset = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	int32 MaxStackSize = 99;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	int32 SellPrice = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Consumable", meta = (ClampMin = "0"))
+	float HealHpAmount = 0.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Consumable", meta = (ClampMin = "0"))
+	float HealMpAmount = 0.0f;
 	
 	FItemData() :
 		ItemID(NAME_None),
@@ -62,7 +65,9 @@ struct FItemData : public FTableRowBase
 		MeshScale(1.0f),
 		MeshOffset(FVector::ZeroVector),
 		MaxStackSize(99),
-		SellPrice(0)
+		SellPrice(0),
+		HealHpAmount(0.0f),
+		HealMpAmount(0.0f)
 	{}
 };
 

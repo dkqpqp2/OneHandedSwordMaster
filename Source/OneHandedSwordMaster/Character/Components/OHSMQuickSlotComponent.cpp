@@ -3,7 +3,9 @@
 #include "OHSMQuickSlotComponent.h"
 
 #include "OHSMInventoryComponent.h"
+#include "OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
+#include "OneHandedSwordMaster/Data/OHSMItemData.h"
 
 UOHSMQuickSlotComponent::UOHSMQuickSlotComponent()
 {
@@ -48,10 +50,36 @@ void UOHSMQuickSlotComponent::UsePotionSlot(int32 PotionSlotIndex)
 		return;
 	}
 
-	int32 Removed = InventoryComp->RemoveItem(ItemID, 1);
+	// 아이템 데이터에서 회복량 조회
+	const FItemData* ItemData = InventoryComp->GetItemData(ItemID);
+	if (!ItemData)
+	{
+		return;
+	}
 
-	// 인벤토리에 아이템이 없으면 슬롯 자동 해제
-	if (Removed <= 0 || InventoryComp->GetItemCount(ItemID) <= 0)
+	int32 Removed = InventoryComp->RemoveItem(ItemID, 1);
+	if (Removed <= 0)
+	{
+		return;
+	}
+
+	// HP / MP 회복 적용
+	UOHSMPlayerStatComponent* StatComp = Cast<UOHSMPlayerStatComponent>(Player->GetStatComponent());
+	if (StatComp)
+	{
+		if (ItemData->HealHpAmount > 0.0f)
+		{
+			StatComp->Heal(ItemData->HealHpAmount);
+		}
+
+		if (ItemData->HealMpAmount > 0.0f)
+		{
+			StatComp->RestoreMana(ItemData->HealMpAmount);
+		}
+	}
+
+	// 인벤토리에 아이템이 더 없으면 슬롯 자동 해제
+	if (InventoryComp->GetItemCount(ItemID) <= 0)
 	{
 		ClearSlot(PotionSlotIndex);
 	}

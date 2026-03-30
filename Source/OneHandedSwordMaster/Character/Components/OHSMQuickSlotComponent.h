@@ -45,6 +45,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "QuickSlot")
 	FName GetSlotItemID(int32 SlotIndex) const;
 
+	/** 두 퀵슬롯 위치 교체 */
+	UFUNCTION(BlueprintCallable, Category = "QuickSlot")
+	void SwapSlots(int32 FromSlot, int32 ToSlot);
+
 	UFUNCTION(BlueprintPure, Category = "QuickSlot")
 	bool IsSlotEmpty(int32 SlotIndex) const;
 };

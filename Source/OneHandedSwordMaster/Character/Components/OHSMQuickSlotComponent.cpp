@@ -94,6 +94,23 @@ FName UOHSMQuickSlotComponent::GetSlotItemID(int32 SlotIndex) const
 	return NAME_None;
 }
 
+void UOHSMQuickSlotComponent::SwapSlots(int32 FromSlot, int32 ToSlot)
+{
+	if (!QuickSlots.IsValidIndex(FromSlot) || !QuickSlots.IsValidIndex(ToSlot))
+	{
+		return;
+	}
+
+	FName FromItem = QuickSlots[FromSlot];
+	FName ToItem   = QuickSlots[ToSlot];
+
+	QuickSlots[FromSlot] = ToItem;
+	QuickSlots[ToSlot]   = FromItem;
+
+	OnQuickSlotUpdated.Broadcast(FromSlot, QuickSlots[FromSlot]);
+	OnQuickSlotUpdated.Broadcast(ToSlot,   QuickSlots[ToSlot]);
+}
+
 bool UOHSMQuickSlotComponent::IsSlotEmpty(int32 SlotIndex) const
 {
 	return GetSlotItemID(SlotIndex).IsNone();

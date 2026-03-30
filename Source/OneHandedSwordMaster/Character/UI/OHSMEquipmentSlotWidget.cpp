@@ -24,9 +24,14 @@ void UOHSMEquipmentSlotWidget::InitializeSlot(EEquipmentSlot InSlotType,
 	UOHSMEquipmentComponent* InEquipmentComp,
 	UOHSMInventoryComponent* InInventoryComp)
 {
-	SlotType         = InSlotType;
+	SlotType           = InSlotType;
 	EquipmentComponent = InEquipmentComp;
 	InventoryComponent = InInventoryComp;
+
+	UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] InitializeSlot - SlotType:%d  EquipComp:%s  InvComp:%s"),
+		(int32)SlotType,
+		EquipmentComponent ? TEXT("OK") : TEXT("NULL"),
+		InventoryComponent ? TEXT("OK") : TEXT("NULL"));
 
 	if (EquipmentComponent)
 	{
@@ -38,6 +43,10 @@ void UOHSMEquipmentSlotWidget::InitializeSlot(EEquipmentSlot InSlotType,
 
 void UOHSMEquipmentSlotWidget::RefreshSlot(EEquipmentSlot ChangedSlot)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] RefreshSlot 호출 - ChangedSlot:%d  MySlot:%d  Match:%s"),
+		(int32)ChangedSlot, (int32)SlotType,
+		ChangedSlot == SlotType ? TEXT("YES → UpdateUI") : TEXT("NO → skip"));
+
 	if (ChangedSlot == SlotType)
 	{
 		UpdateUI();
@@ -147,6 +156,11 @@ void UOHSMEquipmentSlotWidget::UpdateUI()
 {
 	SetRenderOpacity(1.0f);
 
+	UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] UpdateUI - SlotType:%d  ItemIcon:%s  EquipComp:%s"),
+		(int32)SlotType,
+		ItemIcon ? TEXT("OK") : TEXT("NULL"),
+		EquipmentComponent ? TEXT("OK") : TEXT("NULL"));
+
 	if (!ItemIcon)
 	{
 		return;
@@ -174,22 +188,26 @@ void UOHSMEquipmentSlotWidget::UpdateUI()
 		FName EquippedID = EquipmentComponent->GetEquippedItem(SlotType);
 		const FItemData* Data = InventoryComponent ? InventoryComponent->GetItemData(EquippedID) : nullptr;
 
+		UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] 장착됨 - ItemID:%s  Data:%s  Icon:%s"),
+			*EquippedID.ToString(),
+			Data ? TEXT("OK") : TEXT("NULL"),
+			(Data && Data->ItemIcon) ? TEXT("OK") : TEXT("NULL"));
+
 		if (Data && Data->ItemIcon)
 		{
 			// 장착된 아이템 아이콘 표시
 			ItemIcon->SetBrushFromTexture(Data->ItemIcon);
 			ItemIcon->SetColorAndOpacity(FLinearColor::White);
+			ItemIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 		else
 		{
-			// 아이콘 미설정 → 기본 이미지 or 투명
-			UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] ItemIcon 없음: %s"), *EquippedID.ToString());
 			ClearIcon();
 		}
 	}
 	else
 	{
-		// 빈 슬롯
+		UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] SlotType:%d 비어있음 → ClearIcon"), (int32)SlotType);
 		ClearIcon();
 	}
 }

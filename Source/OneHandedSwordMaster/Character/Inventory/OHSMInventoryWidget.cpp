@@ -195,7 +195,7 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 			bIsResizing = true;
 			CurrentResizeHandle = Handle;
 			ResizeStartMousePos = InMouseEvent.GetScreenSpacePosition();
-			
+
 			if (MainBorder && MainBorder->Slot)
 			{
 				if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(MainBorder->Slot))
@@ -204,14 +204,15 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 					ResizeStartPosition = CanvasSlot->GetPosition();
 				}
 			}
+			// 리사이즈도 마우스 캡처 필요
+			return FReply::Handled().CaptureMouse(TakeWidget());
 		}
-        
+
 		if (IsMouseOverTitleBar(InGeometry, InMouseEvent))
 		{
-            
 			bIsDragging = true;
 			DragStartMousePos = InMouseEvent.GetScreenSpacePosition();
-			
+
 			if (MainBorder && MainBorder->Slot)
 			{
 				if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(MainBorder->Slot))

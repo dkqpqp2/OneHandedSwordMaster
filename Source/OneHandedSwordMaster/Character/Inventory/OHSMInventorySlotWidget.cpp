@@ -29,25 +29,39 @@ FReply UOHSMInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 	
 	if (InEvent.IsMouseButtonDown(EKeys::RightMouseButton))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[InvSlot] 우클릭 - SlotIndex:%d  SlotEmpty:%s"),
+			SlotIndex, SlotData.IsEmpty() ? TEXT("YES") : TEXT("NO"));
+
 		// 우클릭: 장비 아이템이면 장비창에 자동 장착
 		if (!SlotData.IsEmpty())
 		{
 			const FItemData* ItemData = GetItemData();
+			UE_LOG(LogTemp, Warning, TEXT("[InvSlot] ItemID:%s  ItemData:%s  ItemType:%d  EquipSlot:%d"),
+				*SlotData.ItemID.ToString(),
+				ItemData ? TEXT("OK") : TEXT("NULL"),
+				ItemData ? (int32)ItemData->ItemType : -1,
+				ItemData ? (int32)ItemData->EquipSlot : -1);
+
 			if (ItemData && ItemData->ItemType == EItemType::Equipment && ItemData->EquipSlot != EEquipmentSlot::None)
 			{
 				AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer());
-				if (PC)
+				AOHSMPlayerCharacter* Player = PC ? Cast<AOHSMPlayerCharacter>(PC->GetPawn()) : nullptr;
+				UOHSMEquipmentComponent* EquipComp = Player ? Player->GetEquipmentComponent() : nullptr;
+
+				UE_LOG(LogTemp, Warning, TEXT("[InvSlot] PC:%s  Player:%s  EquipComp:%s"),
+					PC ? TEXT("OK") : TEXT("NULL"),
+					Player ? TEXT("OK") : TEXT("NULL"),
+					EquipComp ? TEXT("OK") : TEXT("NULL"));
+
+				if (EquipComp)
 				{
-					AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(PC->GetPawn());
-					if (Player)
-					{
-						UOHSMEquipmentComponent* EquipComp = Player->GetEquipmentComponent();
-						if (EquipComp)
-						{
-							EquipComp->EquipItem(SlotData.ItemID);
-						}
-					}
+					// SlotIndex 기반으로 정확한 슬롯의 아이템을 장착
+					EquipComp->EquipItemFromSlot(SlotIndex);
 				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[InvSlot] 장비 아이템 아님 → 장착 스킵"));
 			}
 		}
 		return FReply::Handled();

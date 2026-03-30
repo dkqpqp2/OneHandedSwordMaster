@@ -41,6 +41,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	bool EquipItem(FName ItemID);
 
+	/** 인벤토리의 특정 슬롯 인덱스로부터 장착 (우클릭 장착 시 사용) */
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	bool EquipItemFromSlot(int32 InvSlotIndex);
+
 	/**
 	 * 특정 슬롯 해제 → 아이템을 인벤토리로 반환
 	 */

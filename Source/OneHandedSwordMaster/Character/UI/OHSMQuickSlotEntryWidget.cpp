@@ -92,6 +92,18 @@ bool UOHSMQuickSlotEntryWidget::NativeOnDrop(
 		return false;
 	}
 
+	// ── QuickSlot → QuickSlot 이동 ──────────────────────────
+	UOHSMQuickSlotEntryWidget* DraggedQuickSlot = Cast<UOHSMQuickSlotEntryWidget>(InOperation->Payload);
+	if (DraggedQuickSlot && DraggedQuickSlot != this)
+	{
+		DraggedQuickSlot->SetRenderOpacity(1.0f);
+		QuickSlotComponent->SwapSlots(DraggedQuickSlot->GetSlotIndex(), SlotIndex);
+		DraggedQuickSlot->RefreshSlot();
+		RefreshSlot();
+		return true;
+	}
+
+	// ── Inventory → QuickSlot 등록 ───────────────────────────
 	UOHSMInventorySlotWidget* DraggedSlot = Cast<UOHSMInventorySlotWidget>(InOperation->Payload);
 	if (!DraggedSlot || DraggedSlot->IsEmpty())
 	{
@@ -163,9 +175,16 @@ void UOHSMQuickSlotEntryWidget::NativeOnDragDetected(
 	}
 
 	DragOp->Payload = this;
-	// 별도 드래그 비주얼 없이 원본 슬롯을 반투명하게 표시
-	// (별도 위젯을 생성하면 드롭 후 인벤토리 배경색에 영향을 줌)
-	DragOp->DefaultDragVisual = this;
+
+	// 드래그 비주얼: 자기 자신 복사본 생성 (원본은 제자리 유지)
+	UOHSMQuickSlotEntryWidget* DragVisual = CreateWidget<UOHSMQuickSlotEntryWidget>(GetOwningPlayer(), GetClass());
+	if (DragVisual)
+	{
+		DragVisual->InitializeEntry(SlotIndex, TEXT(""), QuickSlotComponent, InventoryComponent);
+		DragVisual->SetRenderOpacity(0.7f);
+		DragOp->DefaultDragVisual = DragVisual;
+	}
+
 	DragOp->Pivot = EDragPivot::MouseDown;
 	OutOperation = DragOp;
 

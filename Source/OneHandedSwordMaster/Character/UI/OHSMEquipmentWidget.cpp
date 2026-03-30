@@ -45,6 +45,7 @@ void UOHSMEquipmentWidget::InitializeEquipment(UOHSMEquipmentComponent* EquipCom
 
 void UOHSMEquipmentWidget::RefreshStats(EEquipmentSlot ChangedSlot)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[EquipWidget] RefreshStats 호출됨 - ChangedSlot:%d"), (int32)ChangedSlot);
 	UpdateStatsDisplay();
 }
 

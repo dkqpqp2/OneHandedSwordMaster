@@ -26,6 +26,67 @@ void UOHSMEquipmentComponent::InitializeDefaultEquipment()
 }
 
 // ============================================================
+// 특정 인벤토리 슬롯 인덱스로 장착 (우클릭 시 정확한 슬롯 제거)
+// ============================================================
+bool UOHSMEquipmentComponent::EquipItemFromSlot(int32 InvSlotIndex)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[EquipComp] EquipItemFromSlot 시작 - InvSlotIndex:%d"), InvSlotIndex);
+
+	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwner());
+	if (!Player) { UE_LOG(LogTemp, Error, TEXT("[EquipComp] Player NULL")); return false; }
+
+	UOHSMInventoryComponent* Inventory = Player->GetInventoryComponent();
+	if (!Inventory) { UE_LOG(LogTemp, Error, TEXT("[EquipComp] Inventory NULL")); return false; }
+
+	const FInventorySlot* Slot = Inventory->GetSlot(InvSlotIndex);
+	if (!Slot || Slot->IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[EquipComp] 슬롯 비어있음 - Index:%d"), InvSlotIndex);
+		return false;
+	}
+
+	FName ItemID = Slot->ItemID;
+	UE_LOG(LogTemp, Warning, TEXT("[EquipComp] ItemID: %s"), *ItemID.ToString());
+
+	const FItemData* Data = FindItemData(ItemID);
+	if (!Data)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[EquipComp] ItemData NULL - 데이터테이블에 %s 없음"), *ItemID.ToString());
+		return false;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[EquipComp] ItemType:%d  EquipSlot:%d"),
+		(int32)Data->ItemType, (int32)Data->EquipSlot);
+
+	if (Data->ItemType != EItemType::Equipment || Data->EquipSlot == EEquipmentSlot::None)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[EquipComp] 장비 아이템 아님 or EquipSlot=None"));
+		return false;
+	}
+
+	EEquipmentSlot TargetSlot = Data->EquipSlot;
+
+	if (!IsSlotEmpty(TargetSlot))
+	{
+		UnequipItem(TargetSlot);
+	}
+
+	if (!Inventory->RemoveItemFromSlot(InvSlotIndex, 1))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[EquipComp] RemoveItemFromSlot 실패"));
+		return false;
+	}
+
+	EquippedItems.Add(TargetSlot, ItemID);
+	ModifyStatBonuses(*Data, 1.0f);
+	UpdateVisualMesh(TargetSlot, Data);
+
+	UE_LOG(LogTemp, Warning, TEXT("[EquipComp] 장착 완료! ItemID:%s  Slot:%d"), *ItemID.ToString(), (int32)TargetSlot);
+	OnEquipmentChanged.Broadcast(TargetSlot);
+	return true;
+}
+
+// ============================================================
 // 장착
 // ============================================================
 bool UOHSMEquipmentComponent::EquipItem(FName ItemID)

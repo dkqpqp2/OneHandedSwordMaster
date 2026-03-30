@@ -173,6 +173,29 @@ void UOHSMPlayerStatComponent::SetBaseStat(EPlayerStatType StatType, float Value
 	}
 }
 
+void UOHSMPlayerStatComponent::AddEquipmentBonus(EPlayerStatType StatType, float Amount)
+{
+	if (FPlayerStat* Stat = PlayerStats.Find(StatType))
+	{
+		Stat->EquipmentBonus += Amount;
+
+		// HP/Mana 최댓값이 바뀌면 UI 갱신
+		if (StatType == EPlayerStatType::MaxHealth)
+		{
+			OnHpChanged.Broadcast(CurrentHp, GetMaxHp());
+		}
+		else if (StatType == EPlayerStatType::MaxMana)
+		{
+			OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
+		}
+	}
+}
+
+void UOHSMPlayerStatComponent::RemoveEquipmentBonus(EPlayerStatType StatType, float Amount)
+{
+	AddEquipmentBonus(StatType, -Amount);
+}
+
 void UOHSMPlayerStatComponent::InitializeStats()
 {
 	PlayerStats.Add(EPlayerStatType::MaxHealth, FPlayerStat(100.0f));

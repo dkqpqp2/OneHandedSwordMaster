@@ -5,6 +5,8 @@
 
 #include "GameFramework/Character.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 
 AOHSMWeaponBase::AOHSMWeaponBase()
 {
@@ -170,14 +172,27 @@ void AOHSMWeaponBase::OnHitDetected(AActor* HitActor, const FHitResult& HitResul
 	{
 		return;
 	}
-	
-	UE_LOG(LogTemp, Error, TEXT("[무기] ✅ 적 타격! %s (데미지: %.1f)"), 
-		   *HitActor->GetName(), 
-		   BaseDamage);
-	
+
+	// 플레이어 스탯 기반 데미지 (장비 보너스 포함)
+	float ActualDamage = BaseDamage;
+	AActor* WeaponOwner = GetWeaponOwner();
+	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(WeaponOwner);
+	if (Player)
+	{
+		UOHSMPlayerStatComponent* StatComp = Player->GetStatComponent();
+		if (StatComp)
+		{
+			ActualDamage = StatComp->GetAttackPower();
+		}
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[무기] ✅ 적 타격! %s (데미지: %.1f)"),
+		   *HitActor->GetName(),
+		   ActualDamage);
+
 	if (UOHSMHealthComponent* HealthComp = HitActor->FindComponentByClass<UOHSMHealthComponent>())
 	{
-		HealthComp->TakeDamage(BaseDamage, GetWeaponOwner());
+		HealthComp->TakeDamage(ActualDamage, Owner);
 	}
 	
 	// 디버그 구체

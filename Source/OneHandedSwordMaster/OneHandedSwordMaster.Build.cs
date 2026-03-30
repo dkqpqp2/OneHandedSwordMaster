@@ -19,7 +19,9 @@ public class OneHandedSwordMaster : ModuleRules
 			"NavigationSystem",
 			"Niagara",
 			"NiagaraCore",
-			"UMG"
+			"UMG",
+			"SlateCore",
+			"Slate"
 		});
 	}
 }

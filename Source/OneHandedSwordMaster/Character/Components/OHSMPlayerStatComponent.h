@@ -132,9 +132,17 @@ public:
     
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetAttackPower() const { return GetStat(EPlayerStatType::Damage); }
-    
+
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetDefensePower() const { return GetStat(EPlayerStatType::Defense); }
+
+	/** 장비 보너스 추가 (스탯에 EquipmentBonus 누적) */
+	UFUNCTION(BlueprintCallable, Category = "Stats|Equipment")
+	void AddEquipmentBonus(EPlayerStatType StatType, float Amount);
+
+	/** 장비 보너스 제거 */
+	UFUNCTION(BlueprintCallable, Category = "Stats|Equipment")
+	void RemoveEquipmentBonus(EPlayerStatType StatType, float Amount);
 
 protected:
 	void InitializeStats();

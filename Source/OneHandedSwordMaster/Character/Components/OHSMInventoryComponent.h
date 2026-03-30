@@ -53,8 +53,9 @@ protected:
 	TObjectPtr<UDataTable> ItemDataTable;
 	
 public:
+	/** bSilent = true 이면 OnItemAdded 브로드캐스트 생략 (장비 해제 등 내부 이동 시 사용) */
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	int32 AddItem(FName ItemID, int32 Count = 1);
+	int32 AddItem(FName ItemID, int32 Count = 1, bool bSilent = false);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	int32 RemoveItem(FName ItemID, int32 Count = 1);

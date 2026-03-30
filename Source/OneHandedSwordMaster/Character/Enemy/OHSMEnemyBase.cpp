@@ -8,8 +8,11 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMWidgetComponent.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMEnemyHpBarWidget.h"
 #include "OneHandedSwordMaster/Data/OHSMCombatData.h"
 #include "NiagaraFunctionLibrary.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -22,12 +25,20 @@ AOHSMEnemyBase::AOHSMEnemyBase()
 	
 	
 	HealthComponent = CreateDefaultSubobject<UOHSMHealthComponent>(TEXT("HealthComponent"));
-	
+
 	DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
 	DetectionSphere->SetupAttachment(RootComponent);
 	DetectionSphere->SetSphereRadius(DetectionRange);
 	DetectionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	DetectionSphere->SetGenerateOverlapEvents(true);
+
+	// 머리 위 체력바 위젯 컴포넌트
+	EnemyHpBar = CreateDefaultSubobject<UOHSMWidgetComponent>(TEXT("EnemyHpBar"));
+	EnemyHpBar->SetupAttachment(GetMesh());
+	EnemyHpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 220.0f));
+	EnemyHpBar->SetWidgetSpace(EWidgetSpace::Screen);
+	EnemyHpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
+	EnemyHpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	Tags.Add(FName(TEXT("Enemy")));
 	
@@ -55,12 +66,42 @@ void AOHSMEnemyBase::BeginPlay()
 		HealthComponent->OnDeath.AddDynamic(this, &AOHSMEnemyBase::OnDeath);
 		HealthComponent->OnHealthChanged.AddDynamic(this, &AOHSMEnemyBase::OnDamaged);
 	}
-	
+
+	// HP 바 위젯 바인딩
+	if (EnemyHpBar)
+	{
+		EnemyHpBar->SetHiddenInGame(true);
+
+		UOHSMEnemyHpBarWidget* HpWidget = Cast<UOHSMEnemyHpBarWidget>(EnemyHpBar->GetUserWidgetObject());
+		if (HpWidget && HealthComponent)
+		{
+			// 초기 체력으로 바 설정
+			HpWidget->UpdateHpBar(
+				HealthComponent->GetCurrentHealth(),
+				HealthComponent->GetMaxHealth(),
+				0.0f,
+				nullptr
+			);
+			// 체력 변경 시 자동 업데이트
+			HealthComponent->OnHealthChanged.AddDynamic(HpWidget, &UOHSMEnemyHpBarWidget::UpdateHpBar);
+		}
+	}
 }
 
 void AOHSMEnemyBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// 플레이어 거리 기준으로 체력바 표시/숨김
+	if (EnemyHpBar && !bIsDead)
+	{
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (PlayerPawn)
+		{
+			float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+			EnemyHpBar->SetHiddenInGame(Distance > HpBarDisplayRange);
+		}
+	}
 
 #if ENABLE_DRAW_DEBUG
 	// 홈 위치에 구체 그리기
@@ -363,6 +404,12 @@ void AOHSMEnemyBase::OnDeath(AActor* Killer)
 	if (DetectionSphere)
 	{
 		DetectionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// 체력바 숨기기
+	if (EnemyHpBar)
+	{
+		EnemyHpBar->SetHiddenInGame(true);
 	}
 	
 	DropItems();

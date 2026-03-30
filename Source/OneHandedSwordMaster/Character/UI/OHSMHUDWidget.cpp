@@ -55,7 +55,7 @@ void UOHSMHUDWidget::InitializeHUD()
 	StatComp->OnHpChanged.AddUObject(this, &UOHSMHUDWidget::UpdateHp);
 
 	InitializeQuickSlots();
-	
+
 	StatComp->OnManaChanged.AddUObject(this, &UOHSMHUDWidget::UpdateMana);
 	
 	StatComp->OnExpChanged.AddDynamic(this, &UOHSMHUDWidget::OnExpChanged);

@@ -22,7 +22,7 @@ void UOHSMInventoryComponent::BeginPlay()
 	}
 }
 
-int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count)
+int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count, bool bSilent)
 {
 	UE_LOG(LogTemp, Error, TEXT(""));
     UE_LOG(LogTemp, Error, TEXT("========================================"));
@@ -134,8 +134,8 @@ int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count)
     UE_LOG(LogTemp, Error, TEXT("========================================"));
     UE_LOG(LogTemp, Error, TEXT(""));
 
-    // 실제로 추가된 경우에만 알림 브로드캐스트
-    if (ActuallyAdded > 0)
+    // bSilent가 아닌 경우에만 알림 브로드캐스트 (장비 해제 등 내부 이동은 알림 없음)
+    if (ActuallyAdded > 0 && !bSilent)
     {
         OnItemAdded.Broadcast(ItemID, ActuallyAdded);
     }

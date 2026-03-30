@@ -14,6 +14,18 @@ enum class EItemType : uint8
 	Quest		UMETA(DisplayName = "퀘스트")
 };
 
+// 장비 슬롯 종류
+UENUM(BlueprintType)
+enum class EEquipmentSlot : uint8
+{
+	None	UMETA(DisplayName = "없음"),
+	Weapon	UMETA(DisplayName = "무기"),
+	Helmet	UMETA(DisplayName = "투구"),
+	Armor	UMETA(DisplayName = "갑옷"),
+	Pants	UMETA(DisplayName = "바지"),
+	Shoes	UMETA(DisplayName = "신발")
+};
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -51,10 +63,31 @@ struct FItemData : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Consumable", meta = (ClampMin = "0"))
 	float HealHpAmount = 0.0f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Consumable", meta = (ClampMin = "0"))
 	float HealMpAmount = 0.0f;
-	
+
+	// ─── 장비 전용 ────────────────────────────────────────────
+	/** 이 아이템이 들어가는 장비 슬롯 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment")
+	EEquipmentSlot EquipSlot = EEquipmentSlot::None;
+
+	/** 공격력 보너스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment", meta = (ClampMin = "0"))
+	float BonusAtk = 0.0f;
+
+	/** 방어력 보너스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment", meta = (ClampMin = "0"))
+	float BonusDef = 0.0f;
+
+	/** 최대 체력 보너스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment", meta = (ClampMin = "0"))
+	float BonusMaxHp = 0.0f;
+
+	/** 최대 마나 보너스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Equipment", meta = (ClampMin = "0"))
+	float BonusMaxMp = 0.0f;
+
 	FItemData() :
 		ItemID(NAME_None),
 		ItemName(FText::GetEmpty()),
@@ -67,7 +100,12 @@ struct FItemData : public FTableRowBase
 		MaxStackSize(99),
 		SellPrice(0),
 		HealHpAmount(0.0f),
-		HealMpAmount(0.0f)
+		HealMpAmount(0.0f),
+		EquipSlot(EEquipmentSlot::None),
+		BonusAtk(0.0f),
+		BonusDef(0.0f),
+		BonusMaxHp(0.0f),
+		BonusMaxMp(0.0f)
 	{}
 };
 

@@ -5,8 +5,10 @@
 
 #include "OHSMPlayerCharacter.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMHUDWidget.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMEquipmentWidget.h"
 #include "OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 
 AOHSMPlayerController::AOHSMPlayerController()
 {
@@ -26,13 +28,14 @@ AOHSMPlayerController::AOHSMPlayerController()
 void AOHSMPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	FInputModeGameOnly GameOnlyInputMode;
-	
+
 	SetInputMode(GameOnlyInputMode);
-	
+
 	InitializeHUDWidget();
 	InitializeInventoryWidget();
+	InitializeEquipmentWidget();
 }
 
 void AOHSMPlayerController::InitializeHUDWidget()
@@ -83,6 +86,47 @@ void AOHSMPlayerController::InitializeInventoryWidget()
 	InventoryWidget->CloseInventory();
 }
 
+void AOHSMPlayerController::InitializeEquipmentWidget()
+{
+	if (!EquipmentWidgetClass)
+	{
+		return;
+	}
+
+	EquipmentWidget = CreateWidget<UOHSMEquipmentWidget>(this, EquipmentWidgetClass);
+	if (!EquipmentWidget)
+	{
+		return;
+	}
+
+	EquipmentWidget->AddToPlayerScreen(10);
+
+	AOHSMPlayerCharacter* PlayerCharacter = Cast<AOHSMPlayerCharacter>(GetPawn());
+	if (PlayerCharacter)
+	{
+		UOHSMEquipmentComponent* EquipmentComp = PlayerCharacter->GetEquipmentComponent();
+		UOHSMInventoryComponent* InventoryComp = PlayerCharacter->GetInventoryComponent();
+		UOHSMPlayerStatComponent* StatComp     = PlayerCharacter->GetStatComponent();
+		if (EquipmentComp && InventoryComp)
+		{
+			EquipmentWidget->InitializeEquipment(EquipmentComp, InventoryComp, StatComp);
+		}
+	}
+
+	EquipmentWidget->CloseEquipment();
+}
+
+void AOHSMPlayerController::ToggleEquipment()
+{
+	if (!EquipmentWidget)
+	{
+		return;
+	}
+
+	EquipmentWidget->ToggleEquipment();
+	UpdateInputMode();
+}
+
 void AOHSMPlayerController::OnItemPickedUp(FName ItemID, int32 Count)
 {
 	if (OHSMHUDWidget)
@@ -97,33 +141,39 @@ void AOHSMPlayerController::ToggleInventory()
 	{
 		return;
 	}
-	
-	if (InventoryWidget)
+
+	InventoryWidget->ToggleInventory();
+	bIsInventoryOpen = (InventoryWidget->GetVisibility() == ESlateVisibility::Visible);
+	UpdateInputMode();
+}
+
+bool AOHSMPlayerController::IsAnyWindowOpen() const
+{
+	const bool bInventoryOpen = InventoryWidget && (InventoryWidget->GetVisibility() == ESlateVisibility::Visible);
+	const bool bEquipmentOpen = EquipmentWidget && (EquipmentWidget->GetVisibility() == ESlateVisibility::Visible);
+	return bInventoryOpen || bEquipmentOpen;
+}
+
+void AOHSMPlayerController::UpdateInputMode()
+{
+	const bool bInventoryOpen  = InventoryWidget  && (InventoryWidget->GetVisibility()  == ESlateVisibility::Visible);
+	const bool bEquipmentOpen  = EquipmentWidget  && (EquipmentWidget->GetVisibility()  == ESlateVisibility::Visible);
+	const bool bAnyWindowOpen  = bInventoryOpen || bEquipmentOpen;
+
+	if (bAnyWindowOpen)
 	{
-		bool bWillOpen = (InventoryWidget->GetVisibility() != ESlateVisibility::Visible);
-		
-		InventoryWidget->ToggleInventory();
-		
-		if (bWillOpen)
-		{
-			FInputModeUIOnly UIOnlyMode;
-			
-			UIOnlyMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
-			UIOnlyMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			
-			SetInputMode(UIOnlyMode);
-			SetShowMouseCursor(true);
-			
-			bIsInventoryOpen = true;
-		}
-		else
-		{
-			FInputModeGameOnly GameOnlyMode;
-        
-			SetInputMode(GameOnlyMode);
-			SetShowMouseCursor(false);
-        
-			bIsInventoryOpen = false;
-		}
+		// 창이 하나라도 열려있으면 → GameAndUI (마우스 + 키입력 동시 가능)
+		FInputModeGameAndUI GameAndUIMode;
+		GameAndUIMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		GameAndUIMode.SetHideCursorDuringCapture(false);
+		SetInputMode(GameAndUIMode);
+		SetShowMouseCursor(true);
+	}
+	else
+	{
+		// 모든 창이 닫혔을 때만 게임 전용 모드로 복귀
+		FInputModeGameOnly GameOnlyMode;
+		SetInputMode(GameOnlyMode);
+		SetShowMouseCursor(false);
 	}
 }

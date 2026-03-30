@@ -11,6 +11,10 @@
 #include "OneHandedSwordMaster/Item/OHSMPickupItem.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMQuickSlotEntryWidget.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMEquipmentSlotWidget.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
 
 void UOHSMInventorySlotWidget::NativeConstruct()
 {
@@ -23,6 +27,32 @@ FReply UOHSMInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 {
 	Super::NativeOnMouseButtonDown(InGeometry, InEvent);
 	
+	if (InEvent.IsMouseButtonDown(EKeys::RightMouseButton))
+	{
+		// 우클릭: 장비 아이템이면 장비창에 자동 장착
+		if (!SlotData.IsEmpty())
+		{
+			const FItemData* ItemData = GetItemData();
+			if (ItemData && ItemData->ItemType == EItemType::Equipment && ItemData->EquipSlot != EEquipmentSlot::None)
+			{
+				AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer());
+				if (PC)
+				{
+					AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(PC->GetPawn());
+					if (Player)
+					{
+						UOHSMEquipmentComponent* EquipComp = Player->GetEquipmentComponent();
+						if (EquipComp)
+						{
+							EquipComp->EquipItem(SlotData.ItemID);
+						}
+					}
+				}
+			}
+		}
+		return FReply::Handled();
+	}
+
 	if (InEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		if (!SlotData.IsEmpty())
@@ -75,6 +105,18 @@ bool UOHSMInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 		return false;
 	}
 	
+	// 장비 슬롯에서 인벤토리로 드롭 → 장비 해제
+	UOHSMEquipmentSlotWidget* DraggedEquipSlot = Cast<UOHSMEquipmentSlotWidget>(InOperation->Payload);
+	if (DraggedEquipSlot)
+	{
+		UOHSMEquipmentComponent* EquipComp = DraggedEquipSlot->GetEquipmentComponent();
+		if (EquipComp)
+		{
+			EquipComp->UnequipItem(DraggedEquipSlot->GetSlotType());
+		}
+		return true;
+	}
+
 	// 퀵슬롯에서 인벤토리로 드롭
 	UOHSMQuickSlotEntryWidget* DraggedQuickSlot = Cast<UOHSMQuickSlotEntryWidget>(InOperation->Payload);
 	if (DraggedQuickSlot)

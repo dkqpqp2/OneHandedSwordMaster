@@ -54,9 +54,13 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UOHSMQuickSlotWidget> WidgetSkillSlots;
 
+	// 화면 상단 보스 체력바
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UOHSMBossHpBarWidget> BossHpBar;
+
 	void InitializeHUD();
 	void InitializeQuickSlots();
-	
+
 public:
 	UFUNCTION()
 	void UpdateHp(float CurrentHp, float MaxHp);

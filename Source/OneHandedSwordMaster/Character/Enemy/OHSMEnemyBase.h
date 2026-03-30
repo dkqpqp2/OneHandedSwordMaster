@@ -45,9 +45,17 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UOHSMHealthComponent> HealthComponent;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class USphereComponent> DetectionSphere;
+
+	// 머리 위 체력바 위젯
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UOHSMWidgetComponent> EnemyHpBar;
+
+	// 이 거리 이내의 적 체력바만 표시 (cm)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ClampMin = "100"))
+	float HpBarDisplayRange = 1000.0f;
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
@@ -72,6 +80,15 @@ public:
 	
 	UPROPERTY()
 	bool bIsDead = false;
+
+	// ─── 보스 설정 ─────────────────────────────────────────────
+	/** 보스 여부 - true이면 화면 상단에 보스 체력바 표시 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss")
+	bool bIsBoss = false;
+
+	/** 보스 이름 (비어있으면 Actor 이름 사용) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss")
+	FText BossDisplayName;
 
 	/** 이동 속도 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Movement")
@@ -131,7 +148,14 @@ public:
 	/** 타겟 가져오기 */
 	UFUNCTION(BlueprintPure, Category = "AI")
 	AActor* GetTarget() const { return TargetActor; }
-	
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+	bool IsDead() const { return bIsDead; }
+
+	/** HealthComponent 반환 (BossHpBarWidget에서 사용) */
+	UFUNCTION(BlueprintPure, Category = "Components")
+	class UOHSMHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
 	UFUNCTION(BlueprintPure, Category = "AI|Leash")
 	bool IsOutOfLeashRange() const;
 	

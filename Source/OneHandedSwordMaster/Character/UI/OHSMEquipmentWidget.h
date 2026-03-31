@@ -37,7 +37,6 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UTextBlock> TextMp;
 
-// ─── BindWidget (이름 정확히 일치해야 함) ─────────────────
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UOHSMEquipmentSlotWidget> EquipmentSlot_Weapon;
@@ -54,7 +53,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UOHSMEquipmentSlotWidget> EquipmentSlot_Shoes;
 
-// ─── 공개 API ──────────────────────────────────────────────
 public:
 	void InitializeEquipment(class UOHSMEquipmentComponent* EquipComp,
 		class UOHSMInventoryComponent* InvComp,

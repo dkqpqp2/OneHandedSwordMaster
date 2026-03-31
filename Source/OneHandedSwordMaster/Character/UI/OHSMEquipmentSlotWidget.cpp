@@ -24,7 +24,7 @@ void UOHSMEquipmentSlotWidget::InitializeSlot(EEquipmentSlot InSlotType,
 	UOHSMEquipmentComponent* InEquipmentComp,
 	UOHSMInventoryComponent* InInventoryComp)
 {
-	SlotType           = InSlotType;
+	SlotType = InSlotType;
 	EquipmentComponent = InEquipmentComp;
 	InventoryComponent = InInventoryComp;
 

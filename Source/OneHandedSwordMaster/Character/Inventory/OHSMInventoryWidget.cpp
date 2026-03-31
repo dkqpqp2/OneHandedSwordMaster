@@ -237,7 +237,13 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, 
 		bIsResizing = false;
 		CurrentResizeHandle = EResizeHandle::None;
 		
-		if (bWasDragging || bWasResizing)
+		if (bWasResizing)
+		{
+			// 리사이즈 완료 후 그리드 컬럼 재계산 (한 번만)
+			UpdateGridColumns();
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+		if (bWasDragging)
 		{
 			return FReply::Handled().ReleaseMouseCapture();
 		}
@@ -294,15 +300,15 @@ FReply UOHSMInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, cons
 		}
 		NewSize.X = FMath::Clamp(NewSize.X, MinSize.X, MaxSize.X);
 		NewSize.Y = FMath::Clamp(NewSize.Y, MinSize.Y, MaxSize.Y);
-		
+
 		SetWidgetSize(NewSize);
-		
+
 		if (CurrentResizeHandle == EResizeHandle::BottomLeft)
 		{
 			SetWidgetPosition(NewPosition);
 		}
-		
-		UpdateGridColumns();
+
+		// 그리드 재계산은 MouseUp에서만 (드래그 중 매 프레임 CreateSlots 방지)
 		return FReply::Handled();
 	}
 	

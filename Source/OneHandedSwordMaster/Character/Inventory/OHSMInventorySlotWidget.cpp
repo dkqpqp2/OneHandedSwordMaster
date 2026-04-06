@@ -119,14 +119,27 @@ bool UOHSMInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 		return false;
 	}
 	
-	// 장비 슬롯에서 인벤토리로 드롭 → 장비 해제
+	// 장비 슬롯에서 인벤토리로 드롭 → 장비 해제 후 드롭한 슬롯에 배치
 	UOHSMEquipmentSlotWidget* DraggedEquipSlot = Cast<UOHSMEquipmentSlotWidget>(InOperation->Payload);
 	if (DraggedEquipSlot)
 	{
 		UOHSMEquipmentComponent* EquipComp = DraggedEquipSlot->GetEquipmentComponent();
 		if (EquipComp)
 		{
+			// 해제 전에 아이템 ID 저장
+			FName ItemID = EquipComp->GetEquippedItem(DraggedEquipSlot->GetSlotType());
+
+			// 장착 해제 (인벤토리 첫 번째 빈 슬롯에 들어감)
 			EquipComp->UnequipItem(DraggedEquipSlot->GetSlotType());
+
+			// 아이템이 실제로 들어간 슬롯 찾기
+			int32 AddedIndex = InventoryComponent->FindItemSlot(ItemID, false);
+
+			// 드롭한 슬롯(SlotIndex)으로 이동
+			if (AddedIndex != INDEX_NONE && AddedIndex != SlotIndex)
+			{
+				InventoryComponent->SwapSlots(AddedIndex, SlotIndex);
+			}
 		}
 		return true;
 	}

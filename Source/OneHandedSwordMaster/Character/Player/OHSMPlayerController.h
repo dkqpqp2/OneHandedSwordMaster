@@ -42,9 +42,17 @@ protected:
 	TObjectPtr<class UOHSMEquipmentWidget> EquipmentWidget;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Craft")
+	TSubclassOf<class UOHSMCraftPanel> CraftWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Craft")
+	TObjectPtr<class UOHSMCraftPanel> CraftWidget;
+
+protected:
 	void InitializeHUDWidget();
 	void InitializeInventoryWidget();
 	void InitializeEquipmentWidget();
+	void InitializeCraftWidget();
 
 	/** 현재 열린 창 상태에 따라 입력 모드 / 마우스 커서 자동 갱신 */
 	void UpdateInputMode();
@@ -55,6 +63,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Equipment")
 	void ToggleEquipment();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Craft")
+	void ToggleCraftPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Craft")
+	void OpenCraftPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Craft")
+	void CloseCraftPanel();
+
 	
 	UFUNCTION(BlueprintPure, Category = "UI")
 	UOHSMInventoryWidget* GetInventoryWidget() const { return InventoryWidget; }
@@ -73,9 +91,22 @@ public:
 	/** 인벤토리 또는 장비창 중 하나라도 열려있으면 true */
 	UFUNCTION(BlueprintPure, Category = "UI")
 	bool IsAnyWindowOpen() const;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void SetIsInventoryOpen(bool bOpen) { bIsInventoryOpen = bOpen; }
+
+	// ─── 상호작용 ─────────────────────────────────────────────────
+public:
+	/** NPC 범위 진입/이탈 시 호출 */
+	void SetInteractableActor(AActor* InActor);
+
+	/** 플레이어가 E 키를 눌렀을 때 호출 */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void TryInteract();
+
+private:
+	UPROPERTY()
+	TObjectPtr<AActor> CurrentInteractableActor;
 
 protected:
 	UFUNCTION()

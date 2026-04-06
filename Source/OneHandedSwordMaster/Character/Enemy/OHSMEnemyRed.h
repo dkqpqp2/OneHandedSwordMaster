@@ -28,10 +28,13 @@ protected:
 	
 public:
 	virtual void ChangeAIAnimType(uint8 AnimType) override;
-	
+
+	/** 양손 주먹 콜리전 동시 On/Off (OnCollision / OffCollision Notify) */
+	virtual void SetAttackCollisionEnabled(bool bEnable) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void SetRSocketCollisionEnabled(bool bEnable);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void SetLSocketCollisionEnabled(bool bEnable);
 	

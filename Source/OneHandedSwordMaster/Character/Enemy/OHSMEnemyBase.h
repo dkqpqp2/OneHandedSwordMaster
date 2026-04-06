@@ -50,7 +50,7 @@ protected:
 	TObjectPtr<class USphereComponent> DetectionSphere;
 
 	// 머리 위 체력바 위젯
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<class UOHSMWidgetComponent> EnemyHpBar;
 
 	// 이 거리 이내의 적 체력바만 표시 (cm)
@@ -173,6 +173,14 @@ public:
 	
 public:
 	virtual void ChangeAIAnimType(uint8 AnimType);
+
+	/** AnimNotify OnCollision / OffCollision 에서 호출 — 자식이 override */
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void SetAttackCollisionEnabled(bool bEnable) {}
+
+	/** AnimNotify SpawnProjectile 에서 호출 — 자식이 override */
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void LaunchSkillProjectile() {}
 	
 public:
 	/** 공격 패턴 선택 */

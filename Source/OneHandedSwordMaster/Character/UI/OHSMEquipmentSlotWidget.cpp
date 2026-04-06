@@ -38,6 +38,12 @@ void UOHSMEquipmentSlotWidget::InitializeSlot(EEquipmentSlot InSlotType,
 		EquipmentComponent->OnEquipmentChanged.AddDynamic(this, &UOHSMEquipmentSlotWidget::RefreshSlot);
 	}
 
+	// 툴팁 위젯 생성
+	if (TooltipWidgetClass && GetOwningPlayer())
+	{
+		SlotTooltipWidget = CreateWidget<UOHSMInventoryTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
+	}
+
 	UpdateUI();
 }
 
@@ -69,13 +75,23 @@ FReply UOHSMEquipmentSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeom
 
 	if (InEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		if (EquipmentComponent && !EquipmentComponent->IsSlotEmpty(SlotType))
+		const bool bHasItem = EquipmentComponent && !EquipmentComponent->IsSlotEmpty(SlotType);
+		UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] 좌클릭 - SlotType:%d  HasItem:%s"),
+			(int32)SlotType, bHasItem ? TEXT("YES") : TEXT("NO"));
+
+		if (bHasItem)
 		{
 			return UWidgetBlueprintLibrary::DetectDragIfPressed(InEvent, this, EKeys::LeftMouseButton).NativeReply;
 		}
 	}
 
 	return FReply::Handled();
+}
+
+FReply UOHSMEquipmentSlotWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InEvent)
+{
+	Super::NativeOnMouseButtonUp(InGeometry, InEvent);
+	return FReply::Handled().ReleaseMouseCapture();
 }
 
 void UOHSMEquipmentSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
@@ -85,8 +101,13 @@ void UOHSMEquipmentSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 
 	if (!EquipmentComponent || EquipmentComponent->IsSlotEmpty(SlotType))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] DragDetected 취소 - EquipComp:%s  SlotEmpty:%s"),
+			EquipmentComponent ? TEXT("OK") : TEXT("NULL"),
+			(!EquipmentComponent || EquipmentComponent->IsSlotEmpty(SlotType)) ? TEXT("YES") : TEXT("NO"));
 		return;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] DragDetected 시작 - SlotType:%d"), (int32)SlotType);
 
 	UDragDropOperation* DragOp = NewObject<UDragDropOperation>();
 	if (DragOp)
@@ -102,7 +123,7 @@ void UOHSMEquipmentSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 			DragOp->DefaultDragVisual = DragVisual;
 		}
 
-		DragOp->Pivot   = EDragPivot::MouseDown;
+		DragOp->Pivot    = EDragPivot::MouseDown;
 		OutOperation     = DragOp;
 
 		// 드래그 중 반투명 처리
@@ -149,38 +170,82 @@ void UOHSMEquipmentSlotWidget::NativeOnDragCancelled(const FDragDropEvent& InDra
 	UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragCancelled(InDragDropEvent, InOperation);
+
+	// 드롭 대상 없이 취소된 경우 → 장착 해제 (인벤토리로 자동 반환)
+	if (EquipmentComponent && !EquipmentComponent->IsSlotEmpty(SlotType))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] DragCancelled → UnequipItem SlotType:%d"), (int32)SlotType);
+		EquipmentComponent->UnequipItem(SlotType);
+	}
+
 	SetRenderOpacity(1.0f);
+}
+
+void UOHSMEquipmentSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetVisibility(ESlateVisibility::HitTestInvisible);
+		HoverHighlight->SetRenderOpacity(0.3f);
+	}
+}
+
+void UOHSMEquipmentSlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetVisibility(ESlateVisibility::Hidden);
+		HoverHighlight->SetRenderOpacity(0.0f);
+	}
+}
+
+// TintColor를 포함한 Brush를 명시적으로 흰색으로 설정하는 헬퍼
+static void SetIconTexture(UImage* Icon, UTexture2D* Texture)
+{
+	if (!Icon || !Texture) return;
+
+	FSlateBrush Brush;
+	Brush.SetResourceObject(Texture);
+	Brush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+	Brush.DrawAs = ESlateBrushDrawType::Image;
+	Brush.TintColor = FSlateColor(FLinearColor::White);  // TintColor 명시적으로 흰색
+	Icon->SetBrush(Brush);
+	Icon->SetColorAndOpacity(FLinearColor::White);       // 위젯 컬러도 흰색
 }
 
 void UOHSMEquipmentSlotWidget::UpdateUI()
 {
 	SetRenderOpacity(1.0f);
 
-	UE_LOG(LogTemp, Warning, TEXT("[EquipSlot] UpdateUI - SlotType:%d  ItemIcon:%s  EquipComp:%s"),
-		(int32)SlotType,
-		ItemIcon ? TEXT("OK") : TEXT("NULL"),
-		EquipmentComponent ? TEXT("OK") : TEXT("NULL"));
+	// HoverHighlight 항상 초기화 (Blueprint 기본값 덮어쓰기)
+	if (HoverHighlight)
+	{
+		HoverHighlight->SetVisibility(ESlateVisibility::Hidden);
+		HoverHighlight->SetRenderOpacity(0.0f);
+	}
 
 	if (!ItemIcon)
 	{
 		return;
 	}
 
-	// 브러시 완전 초기화용 빈 브러시
+	// 장비 없을 때 슬롯 아이콘 초기화
 	auto ClearIcon = [this]()
 	{
 		if (DefaultSlotIcon)
 		{
-			ItemIcon->SetBrushFromTexture(DefaultSlotIcon);
-			ItemIcon->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.4f));
+			SetIconTexture(ItemIcon, DefaultSlotIcon);
+			ItemIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 		else
 		{
-			// 흰 배경이 남지 않도록 브러시 자체를 투명하게 초기화
-			FSlateBrush EmptyBrush;
-			EmptyBrush.DrawAs = ESlateBrushDrawType::NoDrawType;
-			ItemIcon->SetBrush(EmptyBrush);
+			// DefaultSlotIcon 없으면 완전히 투명하게 (흰 박스 방지)
+			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
+		// 장비 없으면 툴팁 제거
+		SetToolTip(nullptr);
 	};
 
 	if (EquipmentComponent && !EquipmentComponent->IsSlotEmpty(SlotType))
@@ -195,10 +260,16 @@ void UOHSMEquipmentSlotWidget::UpdateUI()
 
 		if (Data && Data->ItemIcon)
 		{
-			// 장착된 아이템 아이콘 표시
-			ItemIcon->SetBrushFromTexture(Data->ItemIcon);
-			ItemIcon->SetColorAndOpacity(FLinearColor::White);
+			// 장착된 아이템 아이콘 표시 (100% 불투명)
+			SetIconTexture(ItemIcon, Data->ItemIcon);
 			ItemIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+			// 툴팁 갱신
+			if (SlotTooltipWidget)
+			{
+				SlotTooltipWidget->UpdateTooltip(*Data);
+				SetToolTip(SlotTooltipWidget);
+			}
 		}
 		else
 		{

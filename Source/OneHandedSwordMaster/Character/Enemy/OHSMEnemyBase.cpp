@@ -150,10 +150,14 @@ void AOHSMEnemyBase::Tick(float DeltaTime)
 void AOHSMEnemyBase::SetTarget(AActor* NewTarget)
 {
 	TargetActor = NewTarget;
-	
-	if (TargetActor)
+
+	// Blackboard도 동기화 — Passive 타입은 BTService_FindPlayer를 건너뛰므로 직접 세팅
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f,FColor::Red, *TargetActor->GetName());
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsObject(TEXT("TargetActor"), NewTarget);
+		}
 	}
 }
 

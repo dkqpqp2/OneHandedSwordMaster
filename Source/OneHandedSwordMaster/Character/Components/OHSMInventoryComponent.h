@@ -51,6 +51,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Data")
 	TObjectPtr<UDataTable> ItemDataTable;
+
+	/** 게임 시작 시 인벤토리에 기본으로 추가할 아이템 ID 목록 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Default")
+	TArray<FName> DefaultItems;
 	
 public:
 	/** bSilent = true 이면 OnItemAdded 브로드캐스트 생략 (장비 해제 등 내부 이동 시 사용) */

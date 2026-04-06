@@ -59,6 +59,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> EquipmentAction;
 
+	// 제작창
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> CraftAction;
+
+	// 상호작용 (E키)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> InteractAction;
+
 	// 포션 퀵슬롯 단축키 (1, 2, 3, 4)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> QuickPotionSlot1Action;
@@ -118,15 +126,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Equipment")
 	class UOHSMEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
 
-// 타겟팅 컴포넌트
+// 제작 컴포넌트
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UOHSMTargetingComponent> TargetingComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Craft", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMCraftComponent> CraftComponent;
 
 public:
-	UFUNCTION(BlueprintPure, Category = "Targeting")
-	UOHSMTargetingComponent* GetTargetingComponent() const { return TargetingComponent; }
-	
+	UFUNCTION(BlueprintPure, Category = "Craft")
+	class UOHSMCraftComponent* GetCraftComponent() const { return CraftComponent; }
+
+
 protected:
 	void ToggleInventory();
 	
@@ -141,8 +150,8 @@ protected:
 	void UsePotionSlot3();
 	void UsePotionSlot4();
 
-	void ToggleTargetLock();
 	void ToggleEquipment();
+	void ToggleCraftPanel();
 	
 public:
 	TObjectPtr<class USpringArmComponent> GetCameraBoom() const { return CameraBoom; }

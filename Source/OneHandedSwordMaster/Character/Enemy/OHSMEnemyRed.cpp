@@ -58,6 +58,12 @@ void AOHSMEnemyRed::ChangeAIAnimType(uint8 AnimType)
 	EnemyAnimInst->ChangeAnimType(static_cast<EEnemyAIState>(AnimType));
 }
 
+void AOHSMEnemyRed::SetAttackCollisionEnabled(bool bEnable)
+{
+	SetRSocketCollisionEnabled(bEnable);
+	SetLSocketCollisionEnabled(bEnable);
+}
+
 void AOHSMEnemyRed::SetRSocketCollisionEnabled(bool bEnable)
 {
 	if (!IsValid(RSocketCollision))

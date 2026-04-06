@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "OneHandedSwordMaster/Data/OHSMItemData.h"
+#include "OneHandedSwordMaster/Character/Inventory/OHSMInventoryTooltipWidget.h"
 #include "OHSMEquipmentSlotWidget.generated.h"
 
 /**
@@ -22,9 +23,12 @@ protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InEvent) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
 protected:
 	/** 장착된 아이템 아이콘 */
@@ -38,7 +42,14 @@ protected:
 protected:
 	/** 장비가 없을 때 표시할 기본 이미지 (Blueprint에서 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment Slot")
-	TObjectPtr<UTexture2D> DefaultSlotIcon;
+	TObjectPtr<class UTexture2D> DefaultSlotIcon;
+
+	/** 툴팁 위젯 클래스 (Blueprint에서 WBP_InventoryTooltip 지정) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment Slot|Tooltip")
+	TSubclassOf<UOHSMInventoryTooltipWidget> TooltipWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UOHSMInventoryTooltipWidget> SlotTooltipWidget;
 
 protected:
 	/** 이 슬롯의 타입 (무기/투구/갑옷/바지/신발) */

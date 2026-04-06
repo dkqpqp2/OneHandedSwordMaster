@@ -16,7 +16,7 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
-#include "OneHandedSwordMaster/Character/Components/OHSMTargetingComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMCraftComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
@@ -101,7 +101,7 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	InventoryComponent  = CreateDefaultSubobject<UOHSMInventoryComponent>(TEXT("InventoryComponent"));
 	QuickSlotComponent  = CreateDefaultSubobject<UOHSMQuickSlotComponent>(TEXT("QuickSlotComponent"));
 	EquipmentComponent  = CreateDefaultSubobject<UOHSMEquipmentComponent>(TEXT("EquipmentComponent"));
-	TargetingComponent  = CreateDefaultSubobject<UOHSMTargetingComponent>(TEXT("TargetingComponent"));
+	CraftComponent      = CreateDefaultSubobject<UOHSMCraftComponent>(TEXT("CraftComponent"));
 
 }
 
@@ -136,6 +136,8 @@ void AOHSMPlayerCharacter::BeginPlay()
 		if (CurrentWeapon)
 		{
 			CurrentWeapon->EquipToCharacter(this);
+			// 장착된 무기가 없을 때는 메시를 비워둠 (장비창에서 장착 시 교체)
+			CurrentWeapon->GetWeaponMesh()->SetStaticMesh(nullptr);
 		}
 	}
 
@@ -173,6 +175,9 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		// 장비창
 		if (EquipmentAction) EnhancedInputComponent->BindAction(EquipmentAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::ToggleEquipment);
+
+		// 제작창
+		if (CraftAction) EnhancedInputComponent->BindAction(CraftAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::ToggleCraftPanel);
 
 		// 포션 퀵슬롯 (1, 2, 3, 4)
 		if (QuickPotionSlot1Action) EnhancedInputComponent->BindAction(QuickPotionSlot1Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot1);
@@ -226,6 +231,16 @@ void AOHSMPlayerCharacter::ToggleEquipment()
 	PlayerController->ToggleEquipment();
 }
 
+void AOHSMPlayerCharacter::ToggleCraftPanel()
+{
+	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+	PlayerController->ToggleCraftPanel();
+}
+
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	// 입력 값 (Vector2D)
@@ -264,9 +279,8 @@ void AOHSMPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AOHSMPlayerCharacter::Attack()
 {
-	// UI 창이 열려있으면 공격 무시
-	AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetController());
-	if (PC && PC->IsAnyWindowOpen())
+	APlayerController* PC = GetController<APlayerController>();
+	if (PC && PC->bShowMouseCursor)
 	{
 		return;
 	}
@@ -346,14 +360,6 @@ void AOHSMPlayerCharacter::SetupHUDWidget(class UOHSMHUDWidget* InHUDWidget)
 		InHUDWidget->UpdateHp(PlayerStat->GetCurrentHp(), PlayerStat->GetMaxHp());
 		InHUDWidget->UpdateMana(PlayerStat->GetCurrentMana(), PlayerStat->GetMaxMana());
 		InHUDWidget->OnExpChanged(0, PlayerStat->GetCurrentHp());
-	}
-}
-
-void AOHSMPlayerCharacter::ToggleTargetLock()
-{
-	if (TargetingComponent)
-	{
-		TargetingComponent->ToggleLockOn();
 	}
 }
 

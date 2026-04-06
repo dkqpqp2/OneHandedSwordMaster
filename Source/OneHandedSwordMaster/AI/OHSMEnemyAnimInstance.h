@@ -49,7 +49,10 @@ protected:
 	
 	UFUNCTION()
 	void AnimNotify_OnCollision();
-	
+
 	UFUNCTION()
 	void AnimNotify_OffCollision();
+
+	UFUNCTION()
+	void AnimNotify_SpawnProjectile();
 };

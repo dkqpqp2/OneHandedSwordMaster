@@ -9,6 +9,8 @@
 #include "OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
+#include "OneHandedSwordMaster/Character/UI/Craft/OHSMCraftPanel.h"
+#include "OneHandedSwordMaster/Character/Interface/OHSMInteractableInterface.h"
 
 AOHSMPlayerController::AOHSMPlayerController()
 {
@@ -36,6 +38,7 @@ void AOHSMPlayerController::BeginPlay()
 	InitializeHUDWidget();
 	InitializeInventoryWidget();
 	InitializeEquipmentWidget();
+	InitializeCraftWidget();
 }
 
 void AOHSMPlayerController::InitializeHUDWidget()
@@ -116,6 +119,62 @@ void AOHSMPlayerController::InitializeEquipmentWidget()
 	EquipmentWidget->CloseEquipment();
 }
 
+void AOHSMPlayerController::InitializeCraftWidget()
+{
+	if (!CraftWidgetClass)
+	{
+		return;
+	}
+
+	CraftWidget = CreateWidget<UOHSMCraftPanel>(this, CraftWidgetClass);
+	if (!CraftWidget)
+	{
+		return;
+	}
+
+	CraftWidget->AddToPlayerScreen(10);
+	CraftWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void AOHSMPlayerController::ToggleCraftPanel()
+{
+	if (!CraftWidget)
+	{
+		return;
+	}
+
+	if (CraftWidget->IsVisible())
+	{
+		CloseCraftPanel();
+	}
+	else
+	{
+		OpenCraftPanel();
+	}
+}
+
+void AOHSMPlayerController::OpenCraftPanel()
+{
+	if (!CraftWidget)
+	{
+		return;
+	}
+
+	CraftWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	UpdateInputMode();
+}
+
+void AOHSMPlayerController::CloseCraftPanel()
+{
+	if (!CraftWidget)
+	{
+		return;
+	}
+
+	CraftWidget->SetVisibility(ESlateVisibility::Collapsed);
+	UpdateInputMode();
+}
+
 void AOHSMPlayerController::ToggleEquipment()
 {
 	if (!EquipmentWidget)
@@ -125,6 +184,23 @@ void AOHSMPlayerController::ToggleEquipment()
 
 	EquipmentWidget->ToggleEquipment();
 	UpdateInputMode();
+}
+
+void AOHSMPlayerController::SetInteractableActor(AActor* InActor)
+{
+	CurrentInteractableActor = InActor;
+}
+
+void AOHSMPlayerController::TryInteract()
+{
+	if (!IsValid(CurrentInteractableActor)) return;
+
+	IOHSMInteractableInterface* Interactable =
+		Cast<IOHSMInteractableInterface>(CurrentInteractableActor);
+	if (Interactable)
+	{
+		Interactable->Execute_Interact(CurrentInteractableActor, this);
+	}
 }
 
 void AOHSMPlayerController::OnItemPickedUp(FName ItemID, int32 Count)
@@ -143,22 +219,24 @@ void AOHSMPlayerController::ToggleInventory()
 	}
 
 	InventoryWidget->ToggleInventory();
-	bIsInventoryOpen = (InventoryWidget->GetVisibility() == ESlateVisibility::Visible);
+	bIsInventoryOpen = InventoryWidget->IsVisible();
 	UpdateInputMode();
 }
 
 bool AOHSMPlayerController::IsAnyWindowOpen() const
 {
-	const bool bInventoryOpen = InventoryWidget && (InventoryWidget->GetVisibility() == ESlateVisibility::Visible);
-	const bool bEquipmentOpen = EquipmentWidget && (EquipmentWidget->GetVisibility() == ESlateVisibility::Visible);
-	return bInventoryOpen || bEquipmentOpen;
+	const bool bInventoryOpen = InventoryWidget && InventoryWidget->IsVisible();
+	const bool bEquipmentOpen = EquipmentWidget && EquipmentWidget->IsVisible();
+	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
+	return bInventoryOpen || bEquipmentOpen || bCraftOpen;
 }
 
 void AOHSMPlayerController::UpdateInputMode()
 {
-	const bool bInventoryOpen  = InventoryWidget  && (InventoryWidget->GetVisibility()  == ESlateVisibility::Visible);
-	const bool bEquipmentOpen  = EquipmentWidget  && (EquipmentWidget->GetVisibility()  == ESlateVisibility::Visible);
-	const bool bAnyWindowOpen  = bInventoryOpen || bEquipmentOpen;
+	const bool bInventoryOpen = InventoryWidget && InventoryWidget->IsVisible();
+	const bool bEquipmentOpen = EquipmentWidget && EquipmentWidget->IsVisible();
+	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
+	const bool bAnyWindowOpen = bInventoryOpen || bEquipmentOpen || bCraftOpen;
 
 	if (bAnyWindowOpen)
 	{

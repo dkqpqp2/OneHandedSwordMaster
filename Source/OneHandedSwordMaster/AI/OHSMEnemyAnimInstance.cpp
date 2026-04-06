@@ -5,7 +5,6 @@
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
-#include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyRed.h"
 
 void UOHSMEnemyAnimInstance::NativeInitializeAnimation()
 {
@@ -33,22 +32,30 @@ void UOHSMEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 void UOHSMEnemyAnimInstance::AnimNotify_OnCollision()
 {
-	AOHSMEnemyRed* Enemy = Cast<AOHSMEnemyRed>(TryGetPawnOwner());
+	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(TryGetPawnOwner());
 	if (!IsValid(Enemy))
 	{
 		return;
 	}
-	Enemy->SetRSocketCollisionEnabled(true);
-	Enemy->SetLSocketCollisionEnabled(true);
+	Enemy->SetAttackCollisionEnabled(true);
 }
 
 void UOHSMEnemyAnimInstance::AnimNotify_OffCollision()
 {
-	AOHSMEnemyRed* Enemy = Cast<AOHSMEnemyRed>(TryGetPawnOwner());
+	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(TryGetPawnOwner());
 	if (!IsValid(Enemy))
 	{
 		return;
 	}
-	Enemy->SetRSocketCollisionEnabled(false);
-	Enemy->SetLSocketCollisionEnabled(false);
+	Enemy->SetAttackCollisionEnabled(false);
+}
+
+void UOHSMEnemyAnimInstance::AnimNotify_SpawnProjectile()
+{
+	AOHSMEnemyBase* Enemy = Cast<AOHSMEnemyBase>(TryGetPawnOwner());
+	if (!IsValid(Enemy))
+	{
+		return;
+	}
+	Enemy->LaunchSkillProjectile();
 }

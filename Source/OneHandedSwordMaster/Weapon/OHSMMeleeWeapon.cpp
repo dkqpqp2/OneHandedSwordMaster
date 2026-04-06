@@ -7,5 +7,4 @@ AOHSMMeleeWeapon::AOHSMMeleeWeapon()
 {
 	WeaponType = EOHSMWeaponType::OneHandSword;
 	WeaponName = FText::FromString(TEXT("Iron Sword"));
-	BaseDamage = 30.0f;
 }

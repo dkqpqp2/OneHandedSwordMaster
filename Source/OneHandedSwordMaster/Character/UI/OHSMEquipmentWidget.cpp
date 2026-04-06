@@ -7,12 +7,14 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
 
 void UOHSMEquipmentWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	SetVisibility(ESlateVisibility::Hidden);
 }
+
 
 void UOHSMEquipmentWidget::InitializeEquipment(UOHSMEquipmentComponent* EquipComp,
 	UOHSMInventoryComponent* InvComp,
@@ -80,7 +82,9 @@ void UOHSMEquipmentWidget::UpdateStatsDisplay()
 
 void UOHSMEquipmentWidget::OpenEquipment()
 {
-	SetVisibility(ESlateVisibility::Visible);
+	// SelfHitTestInvisible: 위젯 자신은 이벤트 통과, 자식 슬롯들은 정상 클릭 가능
+	// → Equipment 배경이 Inventory 이벤트를 막지 않음
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
 
 void UOHSMEquipmentWidget::CloseEquipment()
@@ -90,7 +94,8 @@ void UOHSMEquipmentWidget::CloseEquipment()
 
 void UOHSMEquipmentWidget::ToggleEquipment()
 {
-	if (GetVisibility() == ESlateVisibility::Visible)
+	// IsVisible()로 체크 (SelfHitTestInvisible도 visible로 인식)
+	if (IsVisible())
 	{
 		CloseEquipment();
 	}

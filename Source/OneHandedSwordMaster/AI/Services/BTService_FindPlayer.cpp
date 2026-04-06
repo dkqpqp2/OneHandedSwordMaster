@@ -48,6 +48,12 @@ void UBTService_FindPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	
 #endif
 	
+	// Passive 타입은 피격 시에만 타겟 설정 — 이 서비스에서 덮어쓰지 않음
+	if (Enemy->Personality == EEnemyPersonality::Passive)
+	{
+		return;
+	}
+
 	if (IsCollision)
 	{
 		// result.GetActor() : 충돌된 액터를 가져온다.

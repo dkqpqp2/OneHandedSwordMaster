@@ -4,6 +4,7 @@
 #include "OHSMInventoryWidget.h"
 
 #include "OHSMInventorySlotWidget.h"
+#include "Blueprint/DragDropOperation.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanelSlot.h"
@@ -12,6 +13,8 @@
 #include "Engine/UserInterfaceSettings.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMEquipmentSlotWidget.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 
 void UOHSMInventoryWidget::NativeConstruct()
 {
@@ -237,13 +240,7 @@ FReply UOHSMInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, 
 		bIsResizing = false;
 		CurrentResizeHandle = EResizeHandle::None;
 		
-		if (bWasResizing)
-		{
-			// 리사이즈 완료 후 그리드 컬럼 재계산 (한 번만)
-			UpdateGridColumns();
-			return FReply::Handled().ReleaseMouseCapture();
-		}
-		if (bWasDragging)
+		if (bWasDragging || bWasResizing)
 		{
 			return FReply::Handled().ReleaseMouseCapture();
 		}
@@ -308,7 +305,7 @@ FReply UOHSMInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, cons
 			SetWidgetPosition(NewPosition);
 		}
 
-		// 그리드 재계산은 MouseUp에서만 (드래그 중 매 프레임 CreateSlots 방지)
+		UpdateGridColumns();
 		return FReply::Handled();
 	}
 	
@@ -491,3 +488,30 @@ void UOHSMInventoryWidget::SetWidgetPosition(FVector2D NewPosition)
 		}
 	}
 }
+
+bool UOHSMInventoryWidget::NativeOnDrop(const FGeometry& InGeometry,
+	const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+
+	if (!InOperation)
+	{
+		return false;
+	}
+
+	// 장비 슬롯에서 인벤토리 빈 공간으로 드롭 → 장비 해제
+	UOHSMEquipmentSlotWidget* EquipSlot = Cast<UOHSMEquipmentSlotWidget>(InOperation->Payload);
+	if (EquipSlot)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[InvWidget] 장비 드롭 수신 → UnequipItem"));
+		UOHSMEquipmentComponent* EquipComp = EquipSlot->GetEquipmentComponent();
+		if (EquipComp)
+		{
+			EquipComp->UnequipItem(EquipSlot->GetSlotType());
+		}
+		return true;
+	}
+
+	return false;
+}
+

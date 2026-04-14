@@ -62,6 +62,24 @@ void UOHSMCraftInfo::SetCraftItemData(const FOHSMCraftItemData& InData, FName In
 	}
 }
 
+void UOHSMCraftInfo::ResetInfo()
+{
+	if (WrapBox_Material)
+	{
+		WrapBox_Material->ClearChildren();
+	}
+
+	if (Label_ResultName)
+	{
+		Label_ResultName->SetText(FText::GetEmpty());
+	}
+
+	if (Img_ResultItem)
+	{
+		Img_ResultItem->SetBrushFromTexture(nullptr);
+	}
+}
+
 void UOHSMCraftInfo::RefreshMaterialCounts()
 {
 	if (!WrapBox_Material) return;

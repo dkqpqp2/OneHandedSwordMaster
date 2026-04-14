@@ -11,6 +11,12 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 #include "OneHandedSwordMaster/Character/UI/Craft/OHSMCraftPanel.h"
 #include "OneHandedSwordMaster/Character/Interface/OHSMInteractableInterface.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMInteractionWidget.h"
+#include "OneHandedSwordMaster/Character/UI/Skill/OHSMSkillPanel.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
+#include "OneHandedSwordMaster/Character/UI/Quest/OHSMQuestPanelWidget.h"
+#include "OneHandedSwordMaster/NPC/OHSMQuestNPC.h"
 
 AOHSMPlayerController::AOHSMPlayerController()
 {
@@ -39,6 +45,9 @@ void AOHSMPlayerController::BeginPlay()
 	InitializeInventoryWidget();
 	InitializeEquipmentWidget();
 	InitializeCraftWidget();
+	InitializeInteractionWidget();
+	InitializeSkillPanel();
+	InitializeQuestPanel();
 }
 
 void AOHSMPlayerController::InitializeHUDWidget()
@@ -136,6 +145,32 @@ void AOHSMPlayerController::InitializeCraftWidget()
 	CraftWidget->SetVisibility(ESlateVisibility::Collapsed);
 }
 
+void AOHSMPlayerController::InitializeInteractionWidget()
+{
+	if (!InteractionWidgetClass) return;
+
+	InteractionWidget = CreateWidget<UOHSMInteractionWidget>(this, InteractionWidgetClass);
+	if (!InteractionWidget) return;
+
+	InteractionWidget->AddToPlayerScreen(5);
+	InteractionWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void AOHSMPlayerController::ShowInteractionWidget(const FText& InHintText)
+{
+	if (!InteractionWidget) return;
+
+	InteractionWidget->SetInteractionText(InHintText);
+	InteractionWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+}
+
+void AOHSMPlayerController::HideInteractionWidget()
+{
+	if (!InteractionWidget) return;
+
+	InteractionWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
 void AOHSMPlayerController::ToggleCraftPanel()
 {
 	if (!CraftWidget)
@@ -161,6 +196,7 @@ void AOHSMPlayerController::OpenCraftPanel()
 	}
 
 	CraftWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	CraftWidget->SetKeyboardFocus();
 	UpdateInputMode();
 }
 
@@ -183,6 +219,12 @@ void AOHSMPlayerController::ToggleEquipment()
 	}
 
 	EquipmentWidget->ToggleEquipment();
+	UpdateInputMode();
+}
+
+void AOHSMPlayerController::SetDialogueOpen(bool bOpen)
+{
+	bIsDialogueOpen = bOpen;
 	UpdateInputMode();
 }
 
@@ -223,12 +265,129 @@ void AOHSMPlayerController::ToggleInventory()
 	UpdateInputMode();
 }
 
+void AOHSMPlayerController::InitializeSkillPanel()
+{
+	if (!SkillPanelWidgetClass) return;
+
+	SkillPanelWidget = CreateWidget<UOHSMSkillPanel>(this, SkillPanelWidgetClass);
+	if (!SkillPanelWidget) return;
+
+	SkillPanelWidget->AddToViewport(100);
+
+	// 스킬 컴포넌트 연결
+	if (AOHSMPlayerCharacter* PC = Cast<AOHSMPlayerCharacter>(GetPawn()))
+	{
+		if (UOHSMSkillComponent* SkillComp = PC->GetSkillComponent())
+		{
+			SkillPanelWidget->SetSkillComponent(SkillComp);
+		}
+	}
+
+	SkillPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void AOHSMPlayerController::ToggleSkillPanel()
+{
+	if (!SkillPanelWidget) return;
+
+	if (SkillPanelWidget->IsVisible())
+	{
+		CloseSkillPanel();
+	}
+	else
+	{
+		OpenSkillPanel();
+	}
+}
+
+void AOHSMPlayerController::OpenSkillPanel()
+{
+	if (!SkillPanelWidget) return;
+
+	SkillPanelWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	SkillPanelWidget->SetKeyboardFocus();
+	bIsSkillPanelOpen = true;
+	UpdateInputMode();
+}
+
+void AOHSMPlayerController::CloseSkillPanel()
+{
+	if (!SkillPanelWidget) return;
+
+	SkillPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+	bIsSkillPanelOpen = false;
+	UpdateInputMode();
+}
+
+void AOHSMPlayerController::InitializeQuestPanel()
+{
+	if (!QuestPanelWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestPanel] QuestPanelWidgetClass 가 설정되지 않았습니다. BP_PlayerController 에서 지정하세요."));
+		return;
+	}
+
+	QuestPanelWidget = CreateWidget<UOHSMQuestPanelWidget>(this, QuestPanelWidgetClass);
+	if (!QuestPanelWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[QuestPanel] 위젯 생성 실패"));
+		return;
+	}
+
+	QuestPanelWidget->AddToPlayerScreen(20);
+	QuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+	UE_LOG(LogTemp, Log, TEXT("[QuestPanel] 초기화 완료"));
+}
+
+void AOHSMPlayerController::OpenQuestPanel(AOHSMQuestNPC* QuestNPC)
+{
+	if (!QuestPanelWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[QuestPanel] QuestPanelWidget 이 null — QuestPanelWidgetClass 를 설정했는지 확인하세요."));
+		return;
+	}
+	if (!QuestNPC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[QuestPanel] QuestNPC 가 null"));
+		return;
+	}
+
+	AOHSMPlayerCharacter* PC = Cast<AOHSMPlayerCharacter>(GetPawn());
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[QuestPanel] PlayerCharacter Cast 실패"));
+		return;
+	}
+
+	UOHSMQuestComponent* QuestComp = PC->GetQuestComponent();
+	if (!QuestComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[QuestPanel] QuestComponent 가 null"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[QuestPanel] 오픈 성공 — NPC: %s"), *QuestNPC->GetName());
+	QuestPanelWidget->InitializePanel(QuestComp, QuestNPC);
+	QuestPanelWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	bIsQuestPanelOpen = true;
+	UpdateInputMode();
+}
+
+void AOHSMPlayerController::CloseQuestPanel()
+{
+	if (!QuestPanelWidget) return;
+	QuestPanelWidget->SetVisibility(ESlateVisibility::Collapsed);
+	bIsQuestPanelOpen = false;
+	UpdateInputMode();
+}
+
 bool AOHSMPlayerController::IsAnyWindowOpen() const
 {
 	const bool bInventoryOpen = InventoryWidget && InventoryWidget->IsVisible();
 	const bool bEquipmentOpen = EquipmentWidget && EquipmentWidget->IsVisible();
 	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
-	return bInventoryOpen || bEquipmentOpen || bCraftOpen;
+	return bInventoryOpen || bEquipmentOpen || bCraftOpen || bIsDialogueOpen || bIsSkillPanelOpen || bIsQuestPanelOpen;
 }
 
 void AOHSMPlayerController::UpdateInputMode()
@@ -236,7 +395,7 @@ void AOHSMPlayerController::UpdateInputMode()
 	const bool bInventoryOpen = InventoryWidget && InventoryWidget->IsVisible();
 	const bool bEquipmentOpen = EquipmentWidget && EquipmentWidget->IsVisible();
 	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
-	const bool bAnyWindowOpen = bInventoryOpen || bEquipmentOpen || bCraftOpen;
+	const bool bAnyWindowOpen = bInventoryOpen || bEquipmentOpen || bCraftOpen || bIsDialogueOpen || bIsSkillPanelOpen || bIsQuestPanelOpen;
 
 	if (bAnyWindowOpen)
 	{

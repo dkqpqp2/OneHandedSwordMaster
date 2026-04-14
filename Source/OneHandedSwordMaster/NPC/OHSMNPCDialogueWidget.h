@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Input/Reply.h"
 #include "OHSMNPCDialogueWidget.generated.h"
 
 class UTextBlock;
@@ -14,9 +15,13 @@ class ONEHANDEDSWORDMASTER_API UOHSMNPCDialogueWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	/** NPC 대화 메시지 설정 */
 	void SetDialogueMessage(const FText& InMessage);
+
+	/** 확인 / 취소 버튼 텍스트 설정 */
+	void SetButtonTexts(const FText& InConfirm, const FText& InCancel);
 
 	/** 확인 버튼 눌렸을 때 */
 	FSimpleMulticastDelegate OnConfirmed;

@@ -16,6 +16,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnManaChangedDelegate, float /*CurrentMana
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLevelUp, int32, NewLevel, int32, OldLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnExpChanged, int32, CurrentExp, int32, RequiredExp);
 
+/** 버프·장비 등으로 스탯 수치가 바뀔 때마다 발생 */
+DECLARE_MULTICAST_DELEGATE(FOnStatChanged);
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ONEHANDEDSWORDMASTER_API UOHSMPlayerStatComponent : public UActorComponent
@@ -40,10 +43,12 @@ protected:
 	TObjectPtr<UDataTable> PlayerStatTable;
 
 public:
-	FOnHpZeroDelegate OnHpZero;
+	FOnHpZeroDelegate   OnHpZero;
 	FOnHpChangedDelegate OnHpChanged;
-	
 	FOnManaChangedDelegate OnManaChanged;
+
+	/** 버프/장비 스탯 변경 시 브로드캐스트 — 장비창·HUD 갱신용 */
+	FOnStatChanged OnStatChanged;
 
 	/** 레벨업 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Events")
@@ -143,6 +148,14 @@ public:
 	/** 장비 보너스 제거 */
 	UFUNCTION(BlueprintCallable, Category = "Stats|Equipment")
 	void RemoveEquipmentBonus(EPlayerStatType StatType, float Amount);
+
+	/** 임시 버프 추가 (스킬·아이템 효과) */
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void AddTemporaryBonus(EPlayerStatType StatType, float Amount);
+
+	/** 임시 버프 제거 */
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void RemoveTemporaryBonus(EPlayerStatType StatType, float Amount);
 
 protected:
 	void InitializeStats();

@@ -24,6 +24,9 @@ public:
 	/** 인벤토리 변경 시 재료 위젯의 보유 수량만 재갱신 */
 	void RefreshMaterialCounts();
 
+	/** 위젯 재사용 시 내용 초기화 */
+	void ResetInfo();
+
 protected:
 	// 결과 아이템
 	UPROPERTY(meta = (BindWidget))

@@ -54,9 +54,21 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UOHSMQuickSlotWidget> WidgetSkillSlots;
 
+	// 스킬 전용 퀵슬롯 바 — WBP_SkillQuickSlotBar 를 이 변수에 연결
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UOHSMSkillQuickSlotBarWidget> SkillQuickSlotBar;
+
+	// 화면 좌상단 버프 상태 바 — WBP_BuffBar 를 이 변수에 연결
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UOHSMBuffBarWidget> BuffBar;
+
 	// 화면 상단 보스 체력바
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UOHSMBossHpBarWidget> BossHpBar;
+
+	// 화면 우측 퀘스트 트래커
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UOHSMQuestTrackerWidget> QuestTracker;
 
 	void InitializeHUD();
 	void InitializeQuickSlots();

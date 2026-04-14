@@ -49,10 +49,34 @@ protected:
 	TObjectPtr<class UOHSMCraftPanel> CraftWidget;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TSubclassOf<class UOHSMInteractionWidget> InteractionWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<class UOHSMInteractionWidget> InteractionWidget;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
+	TSubclassOf<class UOHSMSkillPanel> SkillPanelWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<class UOHSMSkillPanel> SkillPanelWidget;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	TSubclassOf<class UOHSMQuestPanelWidget> QuestPanelWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TObjectPtr<class UOHSMQuestPanelWidget> QuestPanelWidget;
+
+protected:
 	void InitializeHUDWidget();
 	void InitializeInventoryWidget();
 	void InitializeEquipmentWidget();
 	void InitializeCraftWidget();
+	void InitializeInteractionWidget();
+	void InitializeSkillPanel();
+	void InitializeQuestPanel();
 
 	/** 현재 열린 창 상태에 따라 입력 모드 / 마우스 커서 자동 갱신 */
 	void UpdateInputMode();
@@ -72,6 +96,21 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Craft")
 	void CloseCraftPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Skill")
+	void ToggleSkillPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Skill")
+	void OpenSkillPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Skill")
+	void CloseSkillPanel();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Quest")
+	void OpenQuestPanel(class AOHSMQuestNPC* QuestNPC);
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Quest")
+	void CloseQuestPanel();
 
 	
 	UFUNCTION(BlueprintPure, Category = "UI")
@@ -100,13 +139,24 @@ public:
 	/** NPC 범위 진입/이탈 시 호출 */
 	void SetInteractableActor(AActor* InActor);
 
+	/** 상호작용 힌트 위젯 표시 / 숨김 */
+	void ShowInteractionWidget(const FText& InHintText);
+	void HideInteractionWidget();
+
 	/** 플레이어가 E 키를 눌렀을 때 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
 
+	/** NPC 대화창 열림/닫힘 알림 — 입력 모드 갱신용 */
+	void SetDialogueOpen(bool bOpen);
+
 private:
 	UPROPERTY()
 	TObjectPtr<AActor> CurrentInteractableActor;
+
+	bool bIsDialogueOpen    = false;
+	bool bIsSkillPanelOpen  = false;
+	bool bIsQuestPanelOpen  = false;
 
 protected:
 	UFUNCTION()

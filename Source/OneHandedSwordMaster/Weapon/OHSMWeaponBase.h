@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "OHSMWeaponBase.generated.h"
 
 UENUM(BlueprintType)
@@ -32,9 +34,17 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Trace", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class USceneComponent> TraceStart;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Trace", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class USceneComponent> TraceEnd;
+
+	/** 공격 시 표시할 검 트레일 Niagara 컴포넌트 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Trail", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UNiagaraComponent> WeaponTrailComponent;
+
+	/** 에디터(BP Class Defaults)에서 트레일 Niagara 에셋 지정 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Trail")
+	TObjectPtr<UNiagaraSystem> WeaponTrailSystem;
 	
 	
 protected:
@@ -77,6 +87,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void SheathToCharacter (ACharacter* Character);
 	
+	/** 트레일 이펙트 켜기 (AnimNotifyState_WeaponTrail 에서 호출) */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Trail")
+	void ActivateTrail();
+
+	/** 트레일 이펙트 끄기 */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Trail")
+	void DeactivateTrail();
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void StartTracing();
 	

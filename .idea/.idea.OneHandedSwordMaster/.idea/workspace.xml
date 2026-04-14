@@ -10,22 +10,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9344f479-0c94-44bc-b975-513a7bac3889" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.OneHandedSwordMaster/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Character/BP_OHSMPlayerCharacter.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Character/BP_OHSMPlayerCharacter.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Character/Enemy/BP_OHSMEnemyRed.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Character/Enemy/BP_OHSMEnemyRed.uasset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Levels/RobbyMap.umap" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Levels/RobbyMap.umap" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_Inventory.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_Inventory.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Weapons/BP_OHSMBasicSword.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/Weapons/BP_OHSMBasicSword.uasset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Inventory/OHSMInventoryWidget.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Player/OHSMPlayerController.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Player/OHSMPlayerController.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Player/OHSMPlayerController.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/Player/OHSMPlayerController.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Data/OHSMItemData.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Data/OHSMItemData.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_Equipment.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_Equipment.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_EquipmentSlot.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/OneHandedSwordMaster/UI/WBP_EquipmentSlot.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/UI/OHSMEquipmentSlotWidget.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/UI/OHSMEquipmentSlotWidget.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/UI/OHSMEquipmentWidget.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/OneHandedSwordMaster/Character/UI/OHSMEquipmentWidget.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -198,6 +187,8 @@
       <workItem from="1774543645996" duration="257000" />
       <workItem from="1774543975713" duration="302000" />
       <workItem from="1774585285803" duration="55000" />
+      <workItem from="1774890333772" duration="16000" />
+      <workItem from="1774952594091" duration="1000" />
     </task>
     <servers />
   </component>

@@ -3,6 +3,8 @@
 
 #include "OHSMPlayerCharacter.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
@@ -17,6 +19,8 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCraftComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
@@ -24,6 +28,7 @@
 #include "OneHandedSwordMaster/Character/UI/OHSMHUDWidget.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMManaBar.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMExpBar.h"
+#include "OneHandedSwordMaster/Character/Skills/OHSMSlashProjectile.h"
 
 
 // Sets default values
@@ -102,7 +107,18 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	QuickSlotComponent  = CreateDefaultSubobject<UOHSMQuickSlotComponent>(TEXT("QuickSlotComponent"));
 	EquipmentComponent  = CreateDefaultSubobject<UOHSMEquipmentComponent>(TEXT("EquipmentComponent"));
 	CraftComponent      = CreateDefaultSubobject<UOHSMCraftComponent>(TEXT("CraftComponent"));
+	SkillComponent      = CreateDefaultSubobject<UOHSMSkillComponent>(TEXT("SkillComponent"));
+	QuestComponent      = CreateDefaultSubobject<UOHSMQuestComponent>(TEXT("QuestComponent"));
 
+	// 일반 공격 트레일
+	WeaponTrailComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponTrailComponent"));
+	WeaponTrailComponent->SetupAttachment(GetMesh(), TEXT("WeaponSocket"));
+	WeaponTrailComponent->SetAutoActivate(false);
+
+	// 스킬 전용 트레일 (스킬마다 다른 에셋을 런타임에 교체)
+	SkillTrailComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SkillTrailComponent"));
+	SkillTrailComponent->SetupAttachment(GetMesh(), TEXT("WeaponSocket"));
+	SkillTrailComponent->SetAutoActivate(false);
 }
 
 void AOHSMPlayerCharacter::PostInitializeComponents()
@@ -110,6 +126,9 @@ void AOHSMPlayerCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	PlayerStat->OnHpZero.AddUObject(this, &AOHSMPlayerCharacter::SetDead);
+
+	// 레벨업 시 스킬 포인트 지급
+	PlayerStat->OnLevelUp.AddDynamic(this, &AOHSMPlayerCharacter::OnLevelUp);
 }
 
 // Called when the game starts or when spawned
@@ -146,6 +165,12 @@ void AOHSMPlayerCharacter::BeginPlay()
 	{
 		EquipmentComponent->InitializeDefaultEquipment();
 	}
+
+	// 레벨 1 시작 시 초기 스킬포인트 3개 지급
+	if (SkillComponent)
+	{
+		SkillComponent->AddSkillPoints(3);
+	}
 }
 
 
@@ -179,11 +204,23 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// 제작창
 		if (CraftAction) EnhancedInputComponent->BindAction(CraftAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::ToggleCraftPanel);
 
+		// 스킬창
+		if (SkillPanelAction) EnhancedInputComponent->BindAction(SkillPanelAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::ToggleSkillPanel);
+
+		// 상호작용 (E키)
+		if (InteractAction) EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::Interact);
+
 		// 포션 퀵슬롯 (1, 2, 3, 4)
 		if (QuickPotionSlot1Action) EnhancedInputComponent->BindAction(QuickPotionSlot1Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot1);
 		if (QuickPotionSlot2Action) EnhancedInputComponent->BindAction(QuickPotionSlot2Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot2);
 		if (QuickPotionSlot3Action) EnhancedInputComponent->BindAction(QuickPotionSlot3Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot3);
 		if (QuickPotionSlot4Action) EnhancedInputComponent->BindAction(QuickPotionSlot4Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot4);
+
+		// 스킬 퀵슬롯 (F1, F2, F3, F4)
+		if (SkillSlot1Action) EnhancedInputComponent->BindAction(SkillSlot1Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UseSkillSlot1);
+		if (SkillSlot2Action) EnhancedInputComponent->BindAction(SkillSlot2Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UseSkillSlot2);
+		if (SkillSlot3Action) EnhancedInputComponent->BindAction(SkillSlot3Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UseSkillSlot3);
+		if (SkillSlot4Action) EnhancedInputComponent->BindAction(SkillSlot4Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UseSkillSlot4);
 	}
 	else
 	{
@@ -234,11 +271,35 @@ void AOHSMPlayerCharacter::ToggleEquipment()
 void AOHSMPlayerCharacter::ToggleCraftPanel()
 {
 	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
+	if (!PlayerController) return;
+	PlayerController->ToggleCraftPanel();
+}
+
+void AOHSMPlayerCharacter::ToggleSkillPanel()
+{
+	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
 	if (!PlayerController)
 	{
 		return;
 	}
-	PlayerController->ToggleCraftPanel();
+	PlayerController->ToggleSkillPanel();
+}
+
+void AOHSMPlayerCharacter::OnLevelUp(int32 NewLevel, int32 OldLevel)
+{
+	if (!SkillComponent)
+	{
+		return;
+	}
+
+	SkillComponent->AddSkillPoints(3);
+}
+
+void AOHSMPlayerCharacter::Interact()
+{
+	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
+	if (!PlayerController) return;
+	PlayerController->TryInteract();
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)
@@ -368,10 +429,115 @@ void AOHSMPlayerCharacter::UsePotionSlot2() { if (QuickSlotComponent) QuickSlotC
 void AOHSMPlayerCharacter::UsePotionSlot3() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(2); }
 void AOHSMPlayerCharacter::UsePotionSlot4() { if (QuickSlotComponent) QuickSlotComponent->UsePotionSlot(3); }
 
+void AOHSMPlayerCharacter::UseSkillSlot1() { UseSkillSlot(0); }
+void AOHSMPlayerCharacter::UseSkillSlot2() { UseSkillSlot(1); }
+void AOHSMPlayerCharacter::UseSkillSlot3() { UseSkillSlot(2); }
+void AOHSMPlayerCharacter::UseSkillSlot4() { UseSkillSlot(3); }
+
+void AOHSMPlayerCharacter::UseSkillSlot(int32 SkillSlotIndex)
+{
+	if (!SkillComponent || !QuickSlotComponent)
+	{
+		return;
+	}
+
+	// 스킬 슬롯은 QuickSlotComponent 인덱스 4~7 사용
+	const FName SkillID = QuickSlotComponent->GetSlotItemID(
+		UOHSMQuickSlotComponent::PotionSlotCount + SkillSlotIndex);
+
+	if (SkillID.IsNone())
+	{
+		return;
+	}
+
+	SkillComponent->ActivateSkill(SkillID);
+}
+
 void AOHSMPlayerCharacter::AddExp(int32 Amount)
 {
 	if (PlayerStat)
 	{
 		PlayerStat->AddExperience(Amount);
 	}
+}
+
+void AOHSMPlayerCharacter::ActivateWeaponTrail()
+{
+	if (!IsValid(WeaponTrailComponent))
+	{
+		return;
+	}
+
+	if (IsValid(WeaponTrailSystem) && WeaponTrailComponent->GetAsset() != WeaponTrailSystem)
+	{
+		WeaponTrailComponent->SetAsset(WeaponTrailSystem);
+	}
+
+	WeaponTrailComponent->Activate(true);
+}
+
+void AOHSMPlayerCharacter::DeactivateWeaponTrail()
+{
+	if (IsValid(WeaponTrailComponent))
+	{
+		WeaponTrailComponent->Deactivate();
+	}
+}
+
+void AOHSMPlayerCharacter::ActivateSkillTrail(UNiagaraSystem* TrailSystem)
+{
+	if (!IsValid(SkillTrailComponent) || !IsValid(TrailSystem))
+	{
+		return;
+	}
+
+	// 스킬마다 다른 에셋으로 교체 후 활성화
+	SkillTrailComponent->SetAsset(TrailSystem);
+	SkillTrailComponent->Activate(true);
+}
+
+void AOHSMPlayerCharacter::DeactivateSkillTrail()
+{
+	if (IsValid(SkillTrailComponent))
+	{
+		SkillTrailComponent->Deactivate();
+	}
+}
+
+void AOHSMPlayerCharacter::PrepareProjectileSpawn(TSubclassOf<AOHSMSlashProjectile> InProjectileClass, float InDamage, float InForwardOffset)
+{
+	PendingProjectileClass       = InProjectileClass;
+	PendingProjectileDamage      = InDamage;
+	PendingProjectileForwardOffset = InForwardOffset;
+}
+
+void AOHSMPlayerCharacter::SpawnPreparedProjectile()
+{
+	if (!PendingProjectileClass) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	const FVector  Forward  = GetActorForwardVector();
+	const FVector  Origin   = GetActorLocation();
+	const FVector  SpawnPos = Origin + Forward * PendingProjectileForwardOffset;
+	const FRotator SpawnRot = Forward.Rotation();
+
+	FActorSpawnParameters Params;
+	Params.Owner     = this;
+	Params.Instigator = this;
+	Params.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AOHSMSlashProjectile* Projectile =
+		World->SpawnActor<AOHSMSlashProjectile>(PendingProjectileClass, SpawnPos, SpawnRot, Params);
+
+	if (IsValid(Projectile))
+	{
+		Projectile->InitProjectile(this, PendingProjectileDamage);
+	}
+
+	// 사용 후 초기화
+	PendingProjectileClass = nullptr;
+	PendingProjectileDamage = 0.f;
 }

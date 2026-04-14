@@ -42,6 +42,20 @@ void UOHSMEquipmentWidget::InitializeEquipment(UOHSMEquipmentComponent* EquipCom
 		EquipComp->OnEquipmentChanged.AddDynamic(this, &UOHSMEquipmentWidget::RefreshStats);
 	}
 
+	// 레벨업 시 스탯 갱신
+	if (InStatComp)
+	{
+		InStatComp->OnLevelUp.AddDynamic(this, &UOHSMEquipmentWidget::OnLevelUp);
+
+		// 버프·장비 보너스 변경 시 즉시 갱신
+		InStatComp->OnStatChanged.AddUObject(this, &UOHSMEquipmentWidget::UpdateStatsDisplay);
+	}
+
+	UpdateStatsDisplay();
+}
+
+void UOHSMEquipmentWidget::OnLevelUp(int32 NewLevel, int32 OldLevel)
+{
 	UpdateStatsDisplay();
 }
 
@@ -56,6 +70,12 @@ void UOHSMEquipmentWidget::UpdateStatsDisplay()
 	if (!StatComponent)
 	{
 		return;
+	}
+
+	if (TextLevel)
+	{
+		TextLevel->SetText(FText::FromString(
+			FString::Printf(TEXT("Lv. %d"), StatComponent->GetLevel())));
 	}
 
 	if (TextAtk)

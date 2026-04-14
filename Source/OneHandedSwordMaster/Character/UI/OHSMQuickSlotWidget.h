@@ -25,9 +25,13 @@ class ONEHANDEDSWORDMASTER_API UOHSMQuickSlotWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/**
+	 * @param InSkillComp  SlotGroupType == Skill 일 때 전달 (Potion 이면 nullptr)
+	 */
 	void InitializeSlots(
 		class UOHSMQuickSlotComponent* InQuickSlotComp,
-		class UOHSMInventoryComponent* InInventoryComp);
+		class UOHSMInventoryComponent* InInventoryComp,
+		class UOHSMSkillComponent*     InSkillComp = nullptr);
 
 	void RefreshAllSlots();
 
@@ -49,15 +53,26 @@ protected:
 	EQuickSlotGroupType SlotGroupType = EQuickSlotGroupType::Potion;
 
 protected:
+	virtual void NativeDestruct() override;
+
 	// OnInventoryUpdated 델리게이트에 바인딩할 수신자
 	UFUNCTION()
 	void OnInventoryChanged(int32 ChangedSlotIndex);
+
+	// 스킬 슬롯 전용 — 스킬 사용 시 해당 슬롯에 쿨다운 시작
+	void OnSkillActivated(FName SkillID, float Cooldown);
 
 private:
 	// SlotGroupType에 따라 컴포넌트 내 시작 인덱스 반환
 	int32 GetBaseSlotOffset() const;
 
 	TArray<class UOHSMQuickSlotEntryWidget*> GetAllEntries() const;
+
+	UPROPERTY()
+	TObjectPtr<class UOHSMSkillComponent> SkillComponent;
+
+	UPROPERTY()
+	TObjectPtr<class UOHSMQuickSlotComponent> QuickSlotComponent;
 
 	static const TArray<FString> PotionKeyLabels;
 	static const TArray<FString> SkillKeyLabels;

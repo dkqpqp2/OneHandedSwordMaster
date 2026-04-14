@@ -46,16 +46,19 @@ float UOHSMPlayerStatComponent::ApplyDamage(float InDamage, AActor* Attacker)
 	{
 		return 0.0f;
 	}
-	
+
+	// 방어력 적용: 받는 데미지 = 공격력 - 방어력 (최소 1은 들어옴)
+	const float Defense     = GetDefensePower();
+	const float ActualDamage = FMath::Max(1.0f, InDamage - Defense);
+
 	const float PrevHp = CurrentHp;
-	const float ActualDamage = FMath::Clamp<float>(InDamage, 0, InDamage);
-	
 	SetHp(PrevHp - ActualDamage, ActualDamage, Attacker);
+
 	if (CurrentHp <= KINDA_SMALL_NUMBER)
 	{
 		OnHpZero.Broadcast();
 	}
-	
+
 	return ActualDamage;
 }
 
@@ -112,12 +115,19 @@ void UOHSMPlayerStatComponent::SetMana(float NewMana)
 
 void UOHSMPlayerStatComponent::AddExperience(int32 Amount)
 {
+	// 만렙이면 경험치 무시
+	const int32 MaxLevel = PlayerStatTable ? PlayerStatTable->GetRowNames().Num() : 5;
+	if (CurrentLevel >= MaxLevel)
+	{
+		return;
+	}
+
 	CurrentExp += Amount;
-	
+
 	OnExpChanged.Broadcast(CurrentExp, RequiredExp);
-    
-	// 레벨업 체크
-	while (CurrentExp >= RequiredExp)
+
+	// 레벨업 체크 (만렙 초과 방지)
+	while (CurrentExp >= RequiredExp && CurrentLevel < MaxLevel)
 	{
 		LevelUp();
 	}
@@ -188,12 +198,29 @@ void UOHSMPlayerStatComponent::AddEquipmentBonus(EPlayerStatType StatType, float
 		{
 			OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
 		}
+
+		// 장비창 갱신
+		OnStatChanged.Broadcast();
 	}
 }
 
 void UOHSMPlayerStatComponent::RemoveEquipmentBonus(EPlayerStatType StatType, float Amount)
 {
 	AddEquipmentBonus(StatType, -Amount);
+}
+
+void UOHSMPlayerStatComponent::AddTemporaryBonus(EPlayerStatType StatType, float Amount)
+{
+	FPlayerStat& Stat = PlayerStats.FindOrAdd(StatType);
+	Stat.TemporaryBonus += Amount;
+
+	// 버프 적용/해제 시 장비창 즉시 갱신
+	OnStatChanged.Broadcast();
+}
+
+void UOHSMPlayerStatComponent::RemoveTemporaryBonus(EPlayerStatType StatType, float Amount)
+{
+	AddTemporaryBonus(StatType, -Amount);
 }
 
 void UOHSMPlayerStatComponent::InitializeStats()

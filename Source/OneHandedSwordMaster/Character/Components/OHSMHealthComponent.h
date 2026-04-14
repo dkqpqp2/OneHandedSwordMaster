@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMDamageNumberWidget.h"
 #include "OHSMHealthComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnHealthChanged,
@@ -46,6 +47,10 @@ public:
 	FOnDeath OnDeath;
 	
 public:
+	/** 데미지 숫자 위젯 클래스 — 에디터에서 WBP_DamageNumber 지정 */
+	UPROPERTY(EditDefaultsOnly, Category = "Health|UI")
+	TSubclassOf<UOHSMDamageNumberWidget> DamageNumberWidgetClass;
+
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void TakeDamage(float Damage, AActor* DamageCauser);
 	

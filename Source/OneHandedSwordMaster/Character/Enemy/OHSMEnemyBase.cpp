@@ -18,6 +18,9 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Engine/DamageEvents.h"
 #include "OneHandedSwordMaster/Item/OHSMPickupItem.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
 
 AOHSMEnemyBase::AOHSMEnemyBase()
 {
@@ -417,6 +420,28 @@ void AOHSMEnemyBase::OnDeath(AActor* Killer)
 	}
 	
 	DropItems();
+
+	// 경험치 지급 + 퀘스트 알림
+	AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(Killer);
+	if (IsValid(PlayerChar))
+	{
+		if (ExpReward > 0)
+		{
+			if (UOHSMPlayerStatComponent* StatComp = PlayerChar->GetStatComponent())
+			{
+				StatComp->AddExperience(ExpReward);
+			}
+		}
+
+		// 퀘스트 처치 목표 진행도 업데이트
+		if (!EnemyID.IsNone())
+		{
+			if (UOHSMQuestComponent* QuestComp = PlayerChar->GetQuestComponent())
+			{
+				QuestComp->NotifyEnemyKilled(EnemyID);
+			}
+		}
+	}
 
 	// 5초 후 제거
 	SetLifeSpan(5.0f);

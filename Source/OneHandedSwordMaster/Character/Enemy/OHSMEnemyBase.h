@@ -202,6 +202,16 @@ protected:
 	void OnDamaged(float CurrentHealth, float MaxHealth, float Damage, AActor* DamageCauser);
 	
 	
+// 경험치 / 퀘스트
+protected:
+	/** 처치 시 플레이어에게 지급할 경험치 — Blueprint에서 몬스터마다 설정 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward", meta = (ClampMin = "0"))
+	int32 ExpReward = 50;
+
+	/** 퀘스트 Kill 목표의 TargetID 와 매칭할 고유 식별자 (예: "Slime", "EnemyRed") */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	FName EnemyID;
+
 // ItemDrop
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Drop")

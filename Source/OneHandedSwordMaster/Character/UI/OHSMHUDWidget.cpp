@@ -8,11 +8,16 @@
 #include "OHSMManaBar.h"
 #include "OHSMPickupNotifyWidget.h"
 #include "OHSMQuickSlotWidget.h"
+#include "OHSMBuffBarWidget.h"
+#include "Quest/OHSMQuestTrackerWidget.h"
+#include "Skill/OHSMSkillQuickSlotBarWidget.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
 #include "Components/ProgressBar.h"
 #include "Kismet/GamePlayStatics.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
 
 UOHSMHUDWidget::UOHSMHUDWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -54,6 +59,15 @@ void UOHSMHUDWidget::InitializeHUD()
 	
 	StatComp->OnHpChanged.AddUObject(this, &UOHSMHUDWidget::UpdateHp);
 
+	// 퀘스트 트래커 초기화
+	if (QuestTracker)
+	{
+		if (UOHSMQuestComponent* QuestComp = Player->GetQuestComponent())
+		{
+			QuestTracker->InitializeTracker(QuestComp);
+		}
+	}
+
 	InitializeQuickSlots();
 
 	StatComp->OnManaChanged.AddUObject(this, &UOHSMHUDWidget::UpdateMana);
@@ -83,7 +97,23 @@ void UOHSMHUDWidget::InitializeQuickSlots()
 
 	if (WidgetSkillSlots)
 	{
-		WidgetSkillSlots->InitializeSlots(QuickSlotComp, InventoryComp);
+		// 스킬 슬롯은 SkillComponent 도 함께 전달 (아이콘 조회용)
+		UOHSMSkillComponent* SkillComp = Player->GetSkillComponent();
+		WidgetSkillSlots->InitializeSlots(QuickSlotComp, InventoryComp, SkillComp);
+	}
+
+	// 스킬 전용 퀵슬롯 바 초기화
+	UOHSMSkillComponent* SkillComp = Player->GetSkillComponent();
+
+	if (SkillQuickSlotBar)
+	{
+		SkillQuickSlotBar->InitializeBar(QuickSlotComp, SkillComp);
+	}
+
+	// 버프 상태 바 초기화
+	if (BuffBar)
+	{
+		BuffBar->InitializeBar(SkillComp);
 	}
 }
 

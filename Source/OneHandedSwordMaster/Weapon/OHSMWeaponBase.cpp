@@ -3,6 +3,7 @@
 
 #include "OHSMWeaponBase.h"
 
+#include "NiagaraFunctionLibrary.h"
 #include "GameFramework/Character.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
@@ -27,9 +28,12 @@ AOHSMWeaponBase::AOHSMWeaponBase()
 	
 	TraceEnd = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TraceEnd"));
 	TraceEnd->SetupAttachment(WeaponMesh);
-	
 	TraceEnd->SetRelativeLocation(FVector(120.0f, 0.0f, 0.0f));
 
+	// 검 트레일 — 평소에는 비활성, 공격 타이밍에만 켜짐
+	WeaponTrailComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponTrailComponent"));
+	WeaponTrailComponent->SetupAttachment(WeaponMesh);
+	WeaponTrailComponent->SetAutoActivate(false);
 }
 
 void AOHSMWeaponBase::BeginPlay()
@@ -76,6 +80,30 @@ void AOHSMWeaponBase::SheathToCharacter(ACharacter* Character)
 		FAttachmentTransformRules::SnapToTargetIncludingScale,
 		SheathSocketName
 	);
+}
+
+void AOHSMWeaponBase::ActivateTrail()
+{
+	if (!IsValid(WeaponTrailComponent))
+	{
+		return;
+	}
+
+	// 에셋이 아직 지정 안 됐으면 설정
+	if (IsValid(WeaponTrailSystem) && WeaponTrailComponent->GetAsset() != WeaponTrailSystem)
+	{
+		WeaponTrailComponent->SetAsset(WeaponTrailSystem);
+	}
+
+	WeaponTrailComponent->Activate(true);
+}
+
+void AOHSMWeaponBase::DeactivateTrail()
+{
+	if (IsValid(WeaponTrailComponent))
+	{
+		WeaponTrailComponent->Deactivate();
+	}
 }
 
 void AOHSMWeaponBase::StartTracing()

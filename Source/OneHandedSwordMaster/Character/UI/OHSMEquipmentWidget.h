@@ -21,6 +21,10 @@ protected:
 
 // ─── 스탯 표시 BindWidget ──────────────────────────────────
 protected:
+	/** 현재 레벨 표시 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> TextLevel;
+
 	/** 공격력 표시 */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UTextBlock> TextAtk;
@@ -58,9 +62,13 @@ public:
 		class UOHSMInventoryComponent* InvComp,
 		class UOHSMPlayerStatComponent* InStatComp);
 
-	/** 스탯 수치 갱신 */
+	/** 스탯 수치 갱신 (장비 변경 시) */
 	UFUNCTION()
 	void RefreshStats(EEquipmentSlot ChangedSlot);
+
+	/** 스탯 수치 갱신 (레벨업 시) */
+	UFUNCTION()
+	void OnLevelUp(int32 NewLevel, int32 OldLevel);
 
 	void UpdateStatsDisplay();
 

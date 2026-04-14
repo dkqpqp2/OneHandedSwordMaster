@@ -15,6 +15,12 @@ void UOHSMCraftDetailInfo::NativeConstruct()
 
 	Btn_Craft->OnClicked.AddDynamic(this, &UOHSMCraftDetailInfo::OnClickedCraft);
 
+	// AutoWrapText는 한 번만 설정
+	if (Label_Description)
+	{
+		Label_Description->SetAutoWrapText(true);
+	}
+
 	APawn* Pawn = GetOwningPlayerPawn();
 	if (!IsValid(Pawn))
 	{
@@ -48,6 +54,9 @@ void UOHSMCraftDetailInfo::NativeDestruct()
 
 void UOHSMCraftDetailInfo::SetCraftItemData(const FOHSMCraftItemData& InData, FName InRecipeID)
 {
+	// Super 호출 전에 먼저 초기화 (WrapBox 누적 방지)
+	ResetInfo();
+
 	Super::SetCraftItemData(InData, InRecipeID);
 
 	CurrentRecipeID = InRecipeID;
@@ -55,7 +64,6 @@ void UOHSMCraftDetailInfo::SetCraftItemData(const FOHSMCraftItemData& InData, FN
 	if (Label_Description)
 	{
 		Label_Description->SetText(InData.Description);
-		Label_Description->SetAutoWrapText(true);
 	}
 
 	UpdateCraftButton();
@@ -71,11 +79,7 @@ void UOHSMCraftDetailInfo::OnClickedCraft()
 		if (APawn* Pawn = GetOwningPlayerPawn())
 		{
 			CraftComp = Pawn->FindComponentByClass<UOHSMCraftComponent>();
-			if (IsValid(CraftComp))
-			{
-				CraftComp->OnCraftCompleted.AddDynamic(this, &UOHSMCraftDetailInfo::OnCraftCompleted);
 			}
-		}
 	}
 
 	if (!IsValid(CraftComp)) return;

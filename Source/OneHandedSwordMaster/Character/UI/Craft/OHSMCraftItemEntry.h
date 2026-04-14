@@ -48,6 +48,9 @@ public:
 	const FOHSMCraftItemData* CraftItemData = nullptr;
 	FName RecipeID;
 	EItemType CategoryType = EItemType::Material;
+
+	/** TreeView 재활용 시 화살표 동기화용 — 펼침 상태 캐시 */
+	bool bIsExpanded = false;
 };
 
 // ─── 트리뷰 Entry 위젯 ───────────────────────────────────────────

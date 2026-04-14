@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "InputCoreTypes.h"
 #include "OHSMCraftPanel.generated.h"
 
 class UTreeView;
@@ -16,6 +17,7 @@ class ONEHANDEDSWORDMASTER_API UOHSMCraftPanel : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 protected:
 	UFUNCTION()

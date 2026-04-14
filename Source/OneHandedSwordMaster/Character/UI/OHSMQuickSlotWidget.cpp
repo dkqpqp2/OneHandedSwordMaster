@@ -5,14 +5,19 @@
 #include "OHSMQuickSlotEntryWidget.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuickSlotComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
 
 const TArray<FString> UOHSMQuickSlotWidget::PotionKeyLabels = { TEXT("1"), TEXT("2"), TEXT("3"), TEXT("4") };
 const TArray<FString> UOHSMQuickSlotWidget::SkillKeyLabels  = { TEXT("F1"), TEXT("F2"), TEXT("F3"), TEXT("F4") };
 
 void UOHSMQuickSlotWidget::InitializeSlots(
 	UOHSMQuickSlotComponent* InQuickSlotComp,
-	UOHSMInventoryComponent* InInventoryComp)
+	UOHSMInventoryComponent* InInventoryComp,
+	UOHSMSkillComponent*     InSkillComp)
 {
+	QuickSlotComponent = InQuickSlotComp;
+	SkillComponent     = InSkillComp;
+
 	const int32 Offset = GetBaseSlotOffset();
 	const TArray<FString>& KeyLabels = (SlotGroupType == EQuickSlotGroupType::Potion)
 		? PotionKeyLabels
@@ -23,15 +28,31 @@ void UOHSMQuickSlotWidget::InitializeSlots(
 	{
 		if (Entries[i])
 		{
-			Entries[i]->InitializeEntry(Offset + i, KeyLabels[i], InQuickSlotComp, InInventoryComp);
+			Entries[i]->InitializeEntry(Offset + i, KeyLabels[i], InQuickSlotComp, InInventoryComp, InSkillComp);
 		}
 	}
 
-	// 인벤토리가 바뀔 때마다 개수 갱신
-	if (InInventoryComp)
+	// 포션 슬롯만 인벤토리 변경 시 갱신 (스킬 슬롯은 인벤토리와 무관)
+	if (InInventoryComp && SlotGroupType == EQuickSlotGroupType::Potion)
 	{
 		InInventoryComp->OnInventoryUpdated.AddDynamic(this, &UOHSMQuickSlotWidget::OnInventoryChanged);
 	}
+
+	// 스킬 슬롯이면 OnSkillActivated 델리게이트 구독 → 쿨다운 전달
+	if (InSkillComp && SlotGroupType == EQuickSlotGroupType::Skill)
+	{
+		InSkillComp->OnSkillActivated.AddUObject(this, &UOHSMQuickSlotWidget::OnSkillActivated);
+	}
+}
+
+void UOHSMQuickSlotWidget::NativeDestruct()
+{
+	if (SkillComponent)
+	{
+		SkillComponent->OnSkillActivated.RemoveAll(this);
+	}
+
+	Super::NativeDestruct();
 }
 
 void UOHSMQuickSlotWidget::RefreshAllSlots()
@@ -48,6 +69,29 @@ void UOHSMQuickSlotWidget::RefreshAllSlots()
 void UOHSMQuickSlotWidget::OnInventoryChanged(int32 ChangedSlotIndex)
 {
 	RefreshAllSlots();
+}
+
+void UOHSMQuickSlotWidget::OnSkillActivated(FName SkillID, float Cooldown)
+{
+	if (!QuickSlotComponent || SkillID.IsNone() || Cooldown <= 0.f)
+	{
+		return;
+	}
+
+	// 각 슬롯 엔트리를 확인해 SkillID가 등록된 슬롯에만 쿨다운 시작
+	for (UOHSMQuickSlotEntryWidget* Entry : GetAllEntries())
+	{
+		if (!Entry)
+		{
+			continue;
+		}
+
+		const FName SlotItemID = QuickSlotComponent->GetSlotItemID(Entry->GetSlotIndex());
+		if (SlotItemID == SkillID)
+		{
+			Entry->StartCooldown(Cooldown);
+		}
+	}
 }
 
 int32 UOHSMQuickSlotWidget::GetBaseSlotOffset() const

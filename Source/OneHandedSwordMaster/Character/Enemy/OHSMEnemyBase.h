@@ -10,15 +10,20 @@
 #include "OneHandedSwordMaster/Data/OHSMItemData.h"
 #include "OHSMEnemyBase.generated.h"
 
+/** 스포너가 사망 감지를 위해 구독하는 델리게이트 */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnemyDeathNotify, AOHSMEnemyBase* /*DeadEnemy*/);
+
 UENUM(BlueprintType)
 enum class EEnemyAIState : uint8
 {
 	Idle		UMETA(DisplayName = "Idle"),
+	Spawning	UMETA(DisplayName = "Spawning"),
 	Patrol		UMETA(DisplayName = "Patrol"),
 	Run			UMETA(DisplayName = "Run"),
 	Attacking	UMETA(DisplayName = "Attacking"),
 	Skill		UMETA(DisplayName = "Skill"),
-	Dead		UMETA(DisplayName = "Dead")
+	Dead		UMETA(DisplayName = "Dead"),
+	PhaseChange	UMETA(DisplayName = "PhaseChange")	// 보스 페이즈 전환 연출 중
 };
 
 UENUM(BlueprintType)
@@ -80,6 +85,9 @@ public:
 	
 	UPROPERTY()
 	bool bIsDead = false;
+
+	/** 사망 시 브로드캐스트 — 스포너가 구독하여 리스폰 타이머 시작 */
+	FOnEnemyDeathNotify OnEnemyDeathNotify;
 
 	// ─── 보스 설정 ─────────────────────────────────────────────
 	/** 보스 여부 - true이면 화면 상단에 보스 체력바 표시 */
@@ -202,6 +210,16 @@ protected:
 	void OnDamaged(float CurrentHealth, float MaxHealth, float Damage, AActor* DamageCauser);
 	
 	
+// 스폰 애니메이션
+protected:
+	/** 스폰 시 ABP Spawning Pose 로 재생할 애니메이션 시퀀스 — 길이만큼 AI 일시정지 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn")
+	TObjectPtr<UAnimSequence> SpawnAnimSequence;
+
+	/** SpawnAnimSequence 재생 완료 후 호출 — AI 재개 및 Idle 전환 */
+	UFUNCTION()
+	void OnSpawnEnded();
+
 // 경험치 / 퀘스트
 protected:
 	/** 처치 시 플레이어에게 지급할 경험치 — Blueprint에서 몬스터마다 설정 */

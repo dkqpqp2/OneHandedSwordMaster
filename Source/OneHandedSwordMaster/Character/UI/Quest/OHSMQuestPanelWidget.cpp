@@ -6,6 +6,7 @@
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
 #include "OneHandedSwordMaster/NPC/OHSMQuestNPC.h"
 
 // ─── 초기화 ──────────────────────────────────────────────────────────────────
@@ -99,9 +100,14 @@ void UOHSMQuestPanelWidget::BuildQuestList()
 		bool bShow = false;
 		switch (CurrentTab)
 		{
-		case 0: bShow = (State == EQuestState::NotStarted) && QuestComponent->CanAcceptQuest(QuestID); break;
-		case 1: bShow = (State == EQuestState::Active || State == EQuestState::Completable);            break;
-		case 2: bShow = (State == EQuestState::Completed);                                             break;
+		case 0: bShow = (State == EQuestState::NotStarted) && QuestComponent->CanAcceptQuest(QuestID); 
+			break;
+		case 1: bShow = (State == EQuestState::Active || State == EQuestState::Completable);            
+			break;
+		case 2: bShow = (State == EQuestState::Completed);                                             
+			break;
+		default: 
+			break;
 		}
 		if (!bShow) continue;
 
@@ -133,6 +139,7 @@ void UOHSMQuestPanelWidget::RefreshDetail()
 		if (TextDetailObjectives)  TextDetailObjectives->SetText(FText::GetEmpty());
 		if (TextDetailReward)      TextDetailReward->SetText(FText::GetEmpty());
 		if (BtnAccept)             BtnAccept->SetVisibility(ESlateVisibility::Collapsed);
+		if (ChkTrack)              ChkTrack->SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 
@@ -301,12 +308,21 @@ void UOHSMQuestPanelWidget::OnBtnCloseClicked()
 
 void UOHSMQuestPanelWidget::ClosePanel()
 {
-	SetVisibility(ESlateVisibility::Collapsed);
-
-	if (APlayerController* PC = GetOwningPlayer())
+	// AOHSMPlayerController::CloseQuestPanel() 을 통해 닫아야
+	// bIsQuestPanelOpen 플래그가 정확히 해제되고 IsAnyWindowOpen() 이 false 를 반환함
+	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer()))
 	{
-		FInputModeGameOnly GameOnly;
-		PC->SetInputMode(GameOnly);
-		PC->SetShowMouseCursor(false);
+		PC->CloseQuestPanel();
+	}
+	else
+	{
+		// 폴백 (컨트롤러 캐스트 실패 시)
+		SetVisibility(ESlateVisibility::Collapsed);
+		if (APlayerController* FallbackPC = GetOwningPlayer())
+		{
+			FInputModeGameOnly GameOnly;
+			FallbackPC->SetInputMode(GameOnly);
+			FallbackPC->SetShowMouseCursor(false);
+		}
 	}
 }

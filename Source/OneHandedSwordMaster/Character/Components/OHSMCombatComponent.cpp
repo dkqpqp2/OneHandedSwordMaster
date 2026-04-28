@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "OneHandedSwordMaster/Data/OHSMCombatData.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 
 
 UOHSMCombatComponent::UOHSMCombatComponent()
@@ -80,20 +82,33 @@ void UOHSMCombatComponent::PerformBasicAttack()
 	{
 		return;
 	}
-	
+
+	// ── 무기 장착 여부 확인 ──────────────────────────────────────────
+	if (AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(OwnerCharacter))
+	{
+		UOHSMEquipmentComponent* EquipComp = PlayerChar->GetEquipmentComponent();
+		if (!EquipComp || EquipComp->IsSlotEmpty(EEquipmentSlot::Weapon))
+		{
+			// 무기가 없으면 공격 불가
+			return;
+		}
+	}
+
 	// 콤보 데이터 확인
 	if (BasicAttackRows.Num() == 0)
 	{
 		return;
 	}
-	
+
+	// 현재 허용된 최대 콤보 수 (MaxComboCount와 데이터 행 수 중 작은 값)
+	const int32 AllowedCombo = FMath::Min(MaxComboCount, BasicAttackRows.Num());
+
 	// 처음 입력 또는 콤보가 끊긴 상태
 	if (!bCanNextCombo)
 	{
 		CurrentComboIndex = 0;
 		bCanNextCombo = true;
 		bCanReceiveInput = false;
-		
 	}
 	else
 	{
@@ -102,18 +117,12 @@ void UOHSMCombatComponent::PerformBasicAttack()
 		{
 			return;
 		}
-		
+
 		CurrentComboIndex++;
-		if (CurrentComboIndex >= BasicAttackRows.Num())
+		if (CurrentComboIndex >= AllowedCombo)
 		{
-			// 마지막 콤보 후 처음으로
-			GetWorld()->GetTimerManager().SetTimer(
-				ComboResetTimerHandle,
-				this,
-				&UOHSMCombatComponent::ResetCombo,
-				1.5f,
-				false
-			);
+			// 허용된 콤보 횟수 초과 → 즉시 리셋 (다음 프레임부터 다시 공격 가능)
+			ResetCombo();
 			return;
 		}
 		bCanReceiveInput = false;
@@ -127,13 +136,22 @@ void UOHSMCombatComponent::PerformBasicAttack()
 	
 	bIsAttacking = true;
 	CurrentMontage = ComboData->AnimationMontage;
-	
+
 	if (OwnerCharacter)
 	{
 		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
 		if (Movement)
 		{
-			Movement->MaxWalkSpeed = 0.0f;
+			// 속도가 0이 아닐 때만 캐시 갱신
+			// (연속 콤보 중엔 이미 0이므로 원본 값을 덮어쓰지 않음)
+			if (Movement->MaxWalkSpeed > 0.0f)
+			{
+				CachedMaxWalkSpeed    = Movement->MaxWalkSpeed;
+				CachedMaxAcceleration = Movement->MaxAcceleration;
+			}
+
+			// 공격 중 이동 잠금
+			Movement->MaxWalkSpeed    = 0.0f;
 			Movement->MaxAcceleration = 0.0f;
 		}
 	}
@@ -183,19 +201,21 @@ void UOHSMCombatComponent::DisableInputReceive()
 
 void UOHSMCombatComponent::ResetCombo()
 {
+	// 타이머가 남아있으면 취소 (OnMontageEnded에서 호출될 때 이중 실행 방지)
+	GetWorld()->GetTimerManager().ClearTimer(ComboResetTimerHandle);
+
 	CurrentComboIndex = 0;
-	bCanNextCombo = false;
-	bCanReceiveInput = false;
-	bIsAttacking = false;
-	
+	bCanNextCombo     = false;
+	bCanReceiveInput  = false;
+	bIsAttacking      = false;
+
 	if (OwnerCharacter)
 	{
 		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
 		if (Movement)
 		{
-			// 이동 활성화
-			Movement->MaxWalkSpeed = 500.0f;
-			Movement->MaxAcceleration = 2048.0f;
+			Movement->MaxWalkSpeed    = CachedMaxWalkSpeed;
+			Movement->MaxAcceleration = CachedMaxAcceleration;
 		}
 	}
 }
@@ -203,5 +223,35 @@ void UOHSMCombatComponent::ResetCombo()
 void UOHSMCombatComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bIsAttacking = false;
+
+	if (bInterrupted)
+	{
+		// 콤보 체인으로 다음 몽타주가 시작됐을 때 → 이동만 잠깐 복구
+		// (다음 몽타주 시작 시 다시 잠김)
+		if (OwnerCharacter)
+		{
+			UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
+			if (Movement)
+			{
+				Movement->MaxWalkSpeed    = CachedMaxWalkSpeed;
+				Movement->MaxAcceleration = CachedMaxAcceleration;
+			}
+		}
+	}
+	else
+	{
+		// 몽타주가 자연스럽게 끝남 → 콤보 완전 리셋
+		// (이동 복구 + bCanNextCombo = false → 다음 공격 즉시 가능)
+		ResetCombo();
+	}
+}
+
+void UOHSMCombatComponent::SetMaxComboCount(int32 Count)
+{
+	// 현재값보다 클 때만 갱신 (콤보는 스킬로 단계적으로 늘어남)
+	if (Count > MaxComboCount)
+	{
+		MaxComboCount = Count;
+	}
 }
 

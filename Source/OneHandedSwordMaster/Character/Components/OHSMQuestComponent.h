@@ -100,6 +100,9 @@ public:
 	bool IsQuestCompleted(FName QuestID) const { return CompletedQuests.Contains(QuestID); }
 	bool IsQuestActive(FName QuestID) const    { return ActiveQuestProgress.Contains(QuestID); }
 
+	/** 완료된 퀘스트 ID 집합 반환 */
+	const TSet<FName>& GetCompletedQuestIDs() const { return CompletedQuests; }
+
 	// ─── 추적 ─────────────────────────────────────────────────────────────
 
 	void TrackQuest(FName QuestID);

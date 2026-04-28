@@ -57,6 +57,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UOHSMEquipmentSlotWidget> EquipmentSlot_Shoes;
 
+	/** 닫기 버튼 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UButton> Btn_Close;
+
 public:
 	void InitializeEquipment(class UOHSMEquipmentComponent* EquipComp,
 		class UOHSMInventoryComponent* InvComp,
@@ -79,4 +83,7 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<class UOHSMPlayerStatComponent> StatComponent;
+
+	UFUNCTION()
+	void OnBtnCloseClicked();
 };

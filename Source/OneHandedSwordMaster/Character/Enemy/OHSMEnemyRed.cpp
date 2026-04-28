@@ -54,8 +54,6 @@ AOHSMEnemyRed::AOHSMEnemyRed()
 void AOHSMEnemyRed::ChangeAIAnimType(uint8 AnimType)
 {
 	Super::ChangeAIAnimType(AnimType);
-	
-	EnemyAnimInst->ChangeAnimType(static_cast<EEnemyAIState>(AnimType));
 }
 
 void AOHSMEnemyRed::SetAttackCollisionEnabled(bool bEnable)

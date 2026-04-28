@@ -1,7 +1,9 @@
 #include "OHSMNPCBase.h"
 
 #include "OHSMNPCDialogueWidget.h"
+#include "OHSMNPCInfoWidget.h"
 #include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/Character.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
 
@@ -24,6 +26,13 @@ AOHSMNPCBase::AOHSMNPCBase()
 	InteractionRange->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionRange->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap); // Player만 Overlap
 
+	// 머리 위 정보 위젯 컴포넌트
+	InfoWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("InfoWidget"));
+	InfoWidgetComponent->SetupAttachment(RootComponent);
+	InfoWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 150.f));   // 머리 위 높이
+	InfoWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);             // 항상 카메라를 향함
+	InfoWidgetComponent->SetDrawSize(FVector2D(200.f, 80.f));
+	InfoWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AOHSMNPCBase::BeginPlay()
@@ -33,6 +42,18 @@ void AOHSMNPCBase::BeginPlay()
 	InteractionRange->SetSphereRadius(InteractionRadius);
 	InteractionRange->OnComponentBeginOverlap.AddDynamic(this, &AOHSMNPCBase::OnRangeBeginOverlap);
 	InteractionRange->OnComponentEndOverlap.AddDynamic(this, &AOHSMNPCBase::OnRangeEndOverlap);
+
+	// NPC 이름 위젯에 설정
+	if (UOHSMNPCInfoWidget* InfoWidget = GetInfoWidget())
+	{
+		InfoWidget->SetNPCName(NPCName);
+	}
+}
+
+UOHSMNPCInfoWidget* AOHSMNPCBase::GetInfoWidget() const
+{
+	if (!InfoWidgetComponent) return nullptr;
+	return Cast<UOHSMNPCInfoWidget>(InfoWidgetComponent->GetUserWidgetObject());
 }
 
 void AOHSMNPCBase::Interact_Implementation(APlayerController* InstigatorController)

@@ -64,11 +64,6 @@ void AOHSMEnemyWhite::Tick(float DeltaTime)
 void AOHSMEnemyWhite::ChangeAIAnimType(uint8 AnimType)
 {
 	Super::ChangeAIAnimType(AnimType);
-
-	if (EnemyAnimInst)
-	{
-		EnemyAnimInst->ChangeAnimType(static_cast<EEnemyAIState>(AnimType));
-	}
 }
 
 void AOHSMEnemyWhite::SetAttackCollisionEnabled(bool bEnable)

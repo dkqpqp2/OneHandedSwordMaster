@@ -85,6 +85,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> Label_Prerequisite;
 
+	/** 닫기 버튼 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UButton> Btn_Close;
+
 	// ─── 설정 ────────────────────────────────────────────────────
 	/** 스킬 노드 위젯 클래스 (WBP_OHSMSkillNode) */
 	UPROPERTY(EditDefaultsOnly, Category = "Skill|UI")
@@ -138,4 +142,7 @@ private:
 
 	UFUNCTION()
 	void OnBtnLearnClicked();
+
+	UFUNCTION()
+	void OnBtnCloseClicked();
 };

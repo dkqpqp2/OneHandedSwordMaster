@@ -6,6 +6,7 @@
 
 #include "OHSMCraftDetailInfo.h"
 #include "OHSMCraftItemEntry.h"
+#include "Components/Button.h"
 #include "Components/TreeView.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMCraftComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
@@ -18,6 +19,11 @@ void UOHSMCraftPanel::NativeConstruct()
 
 	// ESC 키 수신을 위해 포커스 설정
 	SetIsFocusable(true);
+
+	if (Btn_Close)
+	{
+		Btn_Close->OnClicked.AddDynamic(this, &UOHSMCraftPanel::OnBtnCloseClicked);
+	}
 
 	// CraftDataTable이 없으면 CraftComponent에서 가져오기
 	if (!IsValid(CraftDataTable))
@@ -158,4 +164,12 @@ FReply UOHSMCraftPanel::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 	}
 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+void UOHSMCraftPanel::OnBtnCloseClicked()
+{
+	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer()))
+	{
+		PC->CloseCraftPanel();
+	}
 }

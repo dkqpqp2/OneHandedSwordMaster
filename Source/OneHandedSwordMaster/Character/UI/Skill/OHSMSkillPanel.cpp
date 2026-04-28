@@ -54,6 +54,11 @@ void UOHSMSkillPanel::NativeConstruct()
 		Btn_Learn->OnClicked.AddDynamic(this, &UOHSMSkillPanel::OnBtnLearnClicked);
 	}
 
+	if (Btn_Close)
+	{
+		Btn_Close->OnClicked.AddDynamic(this, &UOHSMSkillPanel::OnBtnCloseClicked);
+	}
+
 	// 상세 패널 초기 상태 — 아무것도 선택 안 된 상태
 	if (Label_SkillName)
 	{
@@ -543,4 +548,12 @@ void UOHSMSkillPanel::OnBtnLearnClicked()
 		return;
 	}
 	SkillComponent->LearnSkill(SelectedSkillID);
+}
+
+void UOHSMSkillPanel::OnBtnCloseClicked()
+{
+	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer()))
+	{
+		PC->CloseSkillPanel();
+	}
 }

@@ -3,6 +3,7 @@
 #include "OHSMEquipmentWidget.h"
 
 #include "OHSMEquipmentSlotWidget.h"
+#include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMEquipmentComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMInventoryComponent.h"
@@ -13,6 +14,11 @@ void UOHSMEquipmentWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	SetVisibility(ESlateVisibility::Hidden);
+
+	if (Btn_Close)
+	{
+		Btn_Close->OnClicked.AddDynamic(this, &UOHSMEquipmentWidget::OnBtnCloseClicked);
+	}
 }
 
 
@@ -123,4 +129,9 @@ void UOHSMEquipmentWidget::ToggleEquipment()
 	{
 		OpenEquipment();
 	}
+}
+
+void UOHSMEquipmentWidget::OnBtnCloseClicked()
+{
+	CloseEquipment();
 }

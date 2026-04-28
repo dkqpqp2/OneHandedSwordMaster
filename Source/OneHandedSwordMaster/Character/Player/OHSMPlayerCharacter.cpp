@@ -5,6 +5,8 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "EngineUtils.h"
+#include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
@@ -21,6 +23,7 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMCraftComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestNavigationComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Weapon/OHSMWeaponBase.h"
@@ -34,7 +37,8 @@
 // Sets default values
 AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick         = true;
+	PrimaryActorTick.bStartWithTickEnabled = false; // 래그돌 중에만 켜짐
 
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
 
@@ -109,6 +113,7 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	CraftComponent      = CreateDefaultSubobject<UOHSMCraftComponent>(TEXT("CraftComponent"));
 	SkillComponent      = CreateDefaultSubobject<UOHSMSkillComponent>(TEXT("SkillComponent"));
 	QuestComponent      = CreateDefaultSubobject<UOHSMQuestComponent>(TEXT("QuestComponent"));
+	QuestNavComponent   = CreateDefaultSubobject<UOHSMQuestNavigationComponent>(TEXT("QuestNavComponent"));
 
 	// 일반 공격 트레일
 	WeaponTrailComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponTrailComponent"));
@@ -129,6 +134,9 @@ void AOHSMPlayerCharacter::PostInitializeComponents()
 
 	// 레벨업 시 스킬 포인트 지급
 	PlayerStat->OnLevelUp.AddDynamic(this, &AOHSMPlayerCharacter::OnLevelUp);
+
+	// 스킬 습득 시 콤보 해금 처리
+	SkillComponent->OnSkillLearned.AddUObject(this, &AOHSMPlayerCharacter::OnSkillLearnedForCombo);
 }
 
 // Called when the game starts or when spawned
@@ -174,6 +182,12 @@ void AOHSMPlayerCharacter::BeginPlay()
 }
 
 
+void AOHSMPlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	// LaunchCharacter 방식은 CharacterMovement 가 캡슐을 직접 움직이므로 Tick 처리 불필요
+}
+
 // Called to bind functionality to input
 void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -209,6 +223,9 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		// 상호작용 (E키)
 		if (InteractAction) EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::Interact);
+
+		// 자동이동 (B키)
+		if (AutoMoveAction) EnhancedInputComponent->BindAction(AutoMoveAction, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::AutoMove);
 
 		// 포션 퀵슬롯 (1, 2, 3, 4)
 		if (QuickPotionSlot1Action) EnhancedInputComponent->BindAction(QuickPotionSlot1Action, ETriggerEvent::Started, this, &AOHSMPlayerCharacter::UsePotionSlot1);
@@ -295,11 +312,40 @@ void AOHSMPlayerCharacter::OnLevelUp(int32 NewLevel, int32 OldLevel)
 	SkillComponent->AddSkillPoints(3);
 }
 
+void AOHSMPlayerCharacter::OnSkillLearnedForCombo(FName SkillID)
+{
+	if (!CombatComponent || !SkillComponent)
+	{
+		return;
+	}
+
+	const FOHSMSkillData* Data = SkillComponent->GetSkillData(SkillID);
+	if (!Data || Data->SkillType != ESkillType::Passive)
+	{
+		return;
+	}
+
+	// ComboCountUnlock > 0 인 패시브만 처리
+	if (Data->ComboCountUnlock > 0)
+	{
+		CombatComponent->SetMaxComboCount(Data->ComboCountUnlock);
+		UE_LOG(LogTemp, Log, TEXT("[Combo] 스킬 '%s' 습득 → 최대 콤보 %d타 해금"),
+			*SkillID.ToString(), Data->ComboCountUnlock);
+	}
+}
+
 void AOHSMPlayerCharacter::Interact()
 {
 	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
 	if (!PlayerController) return;
 	PlayerController->TryInteract();
+}
+
+void AOHSMPlayerCharacter::AutoMove()
+{
+	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
+	if (!PlayerController) return;
+	PlayerController->TriggerAutoMove();
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)
@@ -354,31 +400,144 @@ void AOHSMPlayerCharacter::Attack()
 
 void AOHSMPlayerCharacter::SetDead()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+	bIsDead = true;
+
 	USkeletalMeshComponent* MeshComp = GetMesh();
-    if (MeshComp)
-    {
-	    // 물리 시뮬레이션 활성화
-    	MeshComp->SetSimulatePhysics(true);
-    	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	if (MeshComp)
+	{
+		// 래그돌 활성화
+		MeshComp->SetSimulatePhysics(true);
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
 
-    	// 캡슐 충돌 비활성화
-    	UCapsuleComponent* Capsule = GetCapsuleComponent();
-    	if (Capsule)
-    	{
-    		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    	}
+		// 캡슐 충돌 비활성화
+		UCapsuleComponent* Capsule = GetCapsuleComponent();
+		if (Capsule)
+		{
+			Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 
-    	// CharacterMovement 비활성화
-    	UCharacterMovementComponent* Movement = GetCharacterMovement();
-    	if (Movement)
-    	{
-    		Movement->DisableMovement();
-    		Movement->StopMovementImmediately();
-    	}
+		// 이동 비활성화
+		UCharacterMovementComponent* Movement = GetCharacterMovement();
+		if (Movement)
+		{
+			Movement->DisableMovement();
+			Movement->StopMovementImmediately();
+		}
 
-    	HpBar->SetHiddenInGame(true);
-    }
+		HpBar->SetHiddenInGame(true);
+	}
+
+	// 입력 비활성화
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+
+	// 이 플레이어를 타겟으로 하는 모든 적 타겟 해제 → Idle 복귀
+	for (TActorIterator<AOHSMEnemyBase> It(GetWorld()); It; ++It)
+	{
+		AOHSMEnemyBase* Enemy = *It;
+		if (!IsValid(Enemy) || Enemy->IsDead())
+		{
+			continue;
+		}
+		if (Enemy->GetTarget() == this)
+		{
+			Enemy->SetTarget(nullptr);
+			Enemy->SetAIState(EEnemyAIState::Idle);
+		}
+	}
+
+	// 컨트롤러에 사망 통보 → 사망 화면 표시
+	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetController()))
+	{
+		PC->HandlePlayerDeath(GetRevivalPotionCount());
+	}
+}
+
+bool AOHSMPlayerCharacter::HasRevivalPotion() const
+{
+	return GetRevivalPotionCount() > 0;
+}
+
+int32 AOHSMPlayerCharacter::GetRevivalPotionCount() const
+{
+	if (!InventoryComponent)
+	{
+		return 0;
+	}
+	return InventoryComponent->GetItemCount(RevivalPotionID);
+}
+
+bool AOHSMPlayerCharacter::ConsumeRevivalPotion()
+{
+	if (!InventoryComponent)
+	{
+		return false;
+	}
+	return InventoryComponent->RemoveItem(RevivalPotionID, 1) > 0;
+}
+
+void AOHSMPlayerCharacter::Revive(FVector RespawnLocation, float HealPercent)
+{
+	bIsDead = false;
+
+	// 래그돌 해제 + 메시 재부착
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (MeshComp)
+	{
+		MeshComp->SetSimulatePhysics(false);
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		MeshComp->SetCollisionProfileName(TEXT("CharacterMesh"));
+		MeshComp->AttachToComponent(
+			GetCapsuleComponent(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale
+		);
+		MeshComp->SetRelativeLocationAndRotation(
+			FVector(0.0f, 0.0f, -100.0f),
+			FRotator(0.0f, -90.0f, 0.0f)
+		);
+	}
+
+	// 캡슐 콜리전 복구
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	if (Capsule)
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+
+	// 이동 복구
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (Movement)
+	{
+		Movement->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
+
+	// 리스폰 위치로 텔레포트
+	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	// HP 회복
+	if (PlayerStat)
+	{
+		PlayerStat->Heal(PlayerStat->GetMaxHp() * HealPercent);
+	}
+
+	// HP 바 표시
+	if (HpBar)
+	{
+		HpBar->SetHiddenInGame(false);
+	}
+
+	// 입력 복구
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		EnableInput(PC);
+	}
 }
 
 void AOHSMPlayerCharacter::SetupCharacterWidget(class UOHSMUserWidget* InUserWidget)
@@ -458,6 +617,95 @@ void AOHSMPlayerCharacter::AddExp(int32 Amount)
 	if (PlayerStat)
 	{
 		PlayerStat->AddExperience(Amount);
+	}
+}
+
+// ─── 넉다운 (LaunchCharacter 기반) ───────────────────────────────────────
+
+void AOHSMPlayerCharacter::TriggerKnockdown(FVector LaunchVelocity)
+{
+	// 이미 사망 or 넉다운 중이면 무시
+	if (bIsDead || bIsKnockedDown)
+	{
+		return;
+	}
+	bIsKnockedDown = true;
+
+	GetWorldTimerManager().ClearTimer(KnockdownGetUpTimer);
+	GetWorldTimerManager().ClearTimer(GetUpInputTimer);
+
+	// 입력 비활성화 (날아가는 동안 조작 불가)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+
+	// CharacterMovement가 캡슐 자체를 날려줌 → 카메라가 자연스럽게 따라옴
+	// bXYOverride=true, bZOverride=true : 현재 속도를 완전히 교체
+	LaunchCharacter(LaunchVelocity, true, true);
+
+	UE_LOG(LogTemp, Log, TEXT("[Player] 넉다운 — 발사 속도 X:%.0f Y:%.0f Z:%.0f"),
+		LaunchVelocity.X, LaunchVelocity.Y, LaunchVelocity.Z);
+}
+
+void AOHSMPlayerCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	if (!bIsKnockedDown)
+	{
+		return;
+	}
+
+	// 착지 직후 0.2초 대기 후 일어나기 (즉시 일어나면 어색)
+	GetWorldTimerManager().SetTimer(
+		KnockdownGetUpTimer,
+		this,
+		&AOHSMPlayerCharacter::DoGetUp,
+		0.2f,
+		false
+	);
+}
+
+void AOHSMPlayerCharacter::DoGetUp()
+{
+	if (bIsDead)
+	{
+		bIsKnockedDown = false;
+		return;
+	}
+
+	// 일어나기 몽타주 — Back 없으면 Front 로 대체
+	UAnimMontage* GetUpMontage = GetUpFrontMontage ? GetUpFrontMontage : GetUpBackMontage;
+	float MontageDuration = 0.f;
+	if (GetUpMontage)
+	{
+		MontageDuration = PlayAnimMontage(GetUpMontage);
+	}
+
+	// 몽타주 끝난 뒤 입력 복구
+	auto FinishKnockdown = [this]()
+	{
+		bIsKnockedDown = false;
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			EnableInput(PC);
+		}
+		UE_LOG(LogTemp, Log, TEXT("[Player] 넉다운 완전 회복"));
+	};
+
+	if (MontageDuration > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(
+			GetUpInputTimer,
+			FTimerDelegate::CreateLambda(FinishKnockdown),
+			MontageDuration,
+			false
+		);
+	}
+	else
+	{
+		FinishKnockdown();
 	}
 }
 

@@ -6,7 +6,9 @@
 #include "OHSMNPCBase.generated.h"
 
 class USphereComponent;
+class UWidgetComponent;
 class UOHSMNPCDialogueWidget;
+class UOHSMNPCInfoWidget;
 
 UCLASS(Abstract)
 class ONEHANDEDSWORDMASTER_API AOHSMNPCBase : public ACharacter, public IOHSMInteractableInterface
@@ -25,6 +27,10 @@ public:
 
 	// ─── 공통 설정 ────────────────────────────────────────────────
 protected:
+	/** NPC 이름 (머리 위 위젯에 표시) */
+	UPROPERTY(EditAnywhere, Category = "NPC")
+	FText NPCName = FText::FromString(TEXT("NPC"));
+
 	/** 상호작용 가능 범위 (반경) */
 	UPROPERTY(EditAnywhere, Category = "NPC|Interaction")
 	float InteractionRadius = 200.f;
@@ -53,6 +59,14 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "NPC|Interaction")
 	TObjectPtr<USphereComponent> InteractionRange;
+
+	/** 머리 위 정보 위젯 컴포넌트 (이름 + 퀘스트 인디케이터) */
+	UPROPERTY(VisibleAnywhere, Category = "NPC|UI")
+	TObjectPtr<UWidgetComponent> InfoWidgetComponent;
+
+protected:
+	/** InfoWidgetComponent 에서 UOHSMNPCInfoWidget 반환 (없으면 nullptr) */
+	UOHSMNPCInfoWidget* GetInfoWidget() const;
 
 	/** 화면에 표시할 상호작용 힌트 텍스트 (기본: "[G] 상호작용") */
 	UPROPERTY(EditAnywhere, Category = "NPC|Interaction")

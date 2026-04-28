@@ -35,7 +35,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UOHSMCraftDetailInfo> CraftDetailInfo;
 
+	/** 닫기 버튼 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UButton> Btn_Close;
+
 	/** 제작 레시피 DataTable — BP 또는 PlayerController에서 할당 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Craft")
 	TObjectPtr<UDataTable> CraftDataTable;
+
+private:
+	UFUNCTION()
+	void OnBtnCloseClicked();
 };

@@ -89,6 +89,17 @@ struct FOHSMSkillData : public FTableRowBase
 	EPlayerStatType BuffStatType = EPlayerStatType::Damage;
 
 
+	// ─── 콤보 해금 ───────────────────────────────────────────────
+	/**
+	 * 이 패시브 스킬을 배우면 해금되는 최대 콤보 타격 수.
+	 * 0 이면 콤보와 무관한 패시브. 1 이상이면 배울 때 CombatComponent의
+	 * MaxComboCount 를 이 값으로 설정 (더 큰 값일 때만 적용).
+	 * 예) 2 → 2타 콤보 해금, 3 → 3타 콤보 해금
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Effect",
+		meta = (ClampMin = "0", EditCondition = "SkillType == ESkillType::Passive"))
+	int32 ComboCountUnlock = 0;
+
 	// ─── 스킬 클래스 ─────────────────────────────────────────────
 	/** 실제 실행 로직을 담은 UOHSMSkillBase 서브클래스 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")

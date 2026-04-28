@@ -21,12 +21,16 @@
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
+#include "OneHandedSwordMaster/AI/OHSMEnemyAnimInstance.h"
 
 AOHSMEnemyBase::AOHSMEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	
-	
+
+	// 캡슐이 카메라 SpringArm 트레이스를 막지 않도록 Camera 채널 무시
+	// (기본 Capsule 프리셋은 ECC_Camera 를 Block → 플레이어 뒤에서 카메라가 당겨지는 문제)
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+
 	HealthComponent = CreateDefaultSubobject<UOHSMHealthComponent>(TEXT("HealthComponent"));
 
 	DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
@@ -55,8 +59,42 @@ AOHSMEnemyBase::AOHSMEnemyBase()
 void AOHSMEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	HomeLocation = GetActorLocation();
+
+	// ── 스폰 애니메이션 ───────────────────────────────────────────────────────
+	if (SpawnAnimSequence)
+	{
+		// Spawning 상태로 전환 → ABP Blend Poses가 Spawning Pose로 이동
+		SetAIState(EEnemyAIState::Spawning);
+
+		// 애니메이션 재생 중 AI 로직 일시정지
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			if (AIC->BrainComponent)
+			{
+				AIC->BrainComponent->PauseLogic(TEXT("Spawning"));
+			}
+		}
+
+		// 애니메이션 길이만큼 타이머 후 Idle 전환
+		const float AnimLength = SpawnAnimSequence->GetPlayLength();
+		if (AnimLength > 0.f)
+		{
+			FTimerHandle SpawnTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				SpawnTimerHandle,
+				this,
+				&AOHSMEnemyBase::OnSpawnEnded,
+				AnimLength,
+				false
+			);
+		}
+		else
+		{
+			OnSpawnEnded();
+		}
+	}
 	
 	if (DetectionSphere)
 	{
@@ -264,12 +302,19 @@ void AOHSMEnemyBase::SetAIState(EEnemyAIState NewState)
  	}
  
  	CurrentState = NewState;
- 
+	ChangeAIAnimType((uint8)NewState);
+
  	UE_LOG(LogTemp, Log, TEXT("[Enemy] %s - 상태 변경: %d"), *GetName(), (int32)NewState);
  
  	// 상태별 속도 조정
  	switch (CurrentState)
  	{
+ 		case EEnemyAIState::Idle:
+ 			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+ 			break;
+ 		case EEnemyAIState::Spawning:
+ 			GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+ 			break;
  		case EEnemyAIState::Patrol:
  			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
  			break;
@@ -371,6 +416,11 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 
 void AOHSMEnemyBase::ChangeAIAnimType(uint8 AnimType)
 {
+	UOHSMEnemyAnimInstance* AnimInst = Cast<UOHSMEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInst)
+	{
+		AnimInst->ChangeAnimType((EEnemyAIState)AnimType);
+	}
 }
 
 void AOHSMEnemyBase::OnDetectionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -421,6 +471,9 @@ void AOHSMEnemyBase::OnDeath(AActor* Killer)
 	
 	DropItems();
 
+	// 스포너에게 사망 알림
+	OnEnemyDeathNotify.Broadcast(this);
+
 	// 경험치 지급 + 퀘스트 알림
 	AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(Killer);
 	if (IsValid(PlayerChar))
@@ -458,8 +511,23 @@ void AOHSMEnemyBase::OnDamaged(float CurrentHealth, float MaxHealth, float Damag
 	}
 }
 
+void AOHSMEnemyBase::OnSpawnEnded()
+{
+	// AI 로직 재개
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (AIC->BrainComponent)
+		{
+			AIC->BrainComponent->ResumeLogic(TEXT("Spawning"));
+		}
+	}
+
+	// Idle 상태로 전환 → BT가 정상 동작 시작
+	SetAIState(EEnemyAIState::Idle);
+}
+
 void AOHSMEnemyBase::DropItems()
-{	
+{
 	if (!DropItemTable)
 	{
         return;

@@ -23,7 +23,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	
+	virtual void Tick(float DeltaSeconds) override;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -70,6 +71,10 @@ protected:
 	// 스킬창 토글
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> SkillPanelAction;
+
+	// 자동이동 (B키)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> AutoMoveAction;
 
 	// 포션 퀵슬롯 단축키 (1, 2, 3, 4)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot", meta = (AllowPrivateAccess = "true"))
@@ -203,10 +208,67 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest")
 	class UOHSMQuestComponent* GetQuestComponent() const { return QuestComponent; }
 
+// 퀘스트 네비게이션 컴포넌트
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UOHSMQuestNavigationComponent> QuestNavComponent;
+
 
 protected:
 	void ToggleInventory();
-	
+
+// ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
+public:
+	/** 래그돌 해제 + 지정 위치로 이동 + HP 회복 */
+	void Revive(FVector RespawnLocation, float HealPercent = 1.0f);
+
+	/** 인벤토리에 부활 포션이 있는지 */
+	bool HasRevivalPotion() const;
+
+	/** 인벤토리에 있는 부활 포션 개수 */
+	int32 GetRevivalPotionCount() const;
+
+	/** 부활 포션 1개 소모. 성공 시 true */
+	bool ConsumeRevivalPotion();
+
+	bool bIsDead = false;
+
+	/** 인벤토리에서 부활 포션으로 사용할 ItemID */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Respawn")
+	FName RevivalPotionID = TEXT("ResurrectionPotion");
+
+// ─── 넉다운 (보스 점프 착지 등) ───────────────────────────────────────────
+public:
+	/**
+	 * LaunchCharacter 기반 넉다운.
+	 * LaunchVelocity : 날아갈 속도 벡터 (cm/s).  예) 방향 * 500 + Z * 800
+	 * 착지 후 자동으로 일어나기 몽타주를 재생합니다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Knockdown")
+	void TriggerKnockdown(FVector LaunchVelocity);
+
+	/** 넉다운 or 일어나기 애니메이션 중이면 true */
+	bool IsKnockedDown() const { return bIsKnockedDown; }
+
+protected:
+	/** 착지 감지 → 일어나기 시작 */
+	virtual void Landed(const FHitResult& Hit) override;
+
+	/** 착지 후 일어나기 몽타주 재생 + 입력 복구 */
+	void DoGetUp();
+
+	/** 앞으로 쓰러졌을 때 일어나기 몽타주 (BP에서 지정) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Knockdown")
+	TObjectPtr<UAnimMontage> GetUpFrontMontage;
+
+	/** 뒤로 쓰러졌을 때 일어나기 몽타주 — 없으면 Front 로 대체 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Knockdown")
+	TObjectPtr<UAnimMontage> GetUpBackMontage;
+
+	bool         bIsKnockedDown     = false;
+	FTimerHandle KnockdownGetUpTimer;   // 착지 딜레이 → DoGetUp
+	FTimerHandle GetUpInputTimer;       // 일어나기 몽타주 → 입력 복구
+
 protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -231,9 +293,13 @@ protected:
 	void ToggleCraftPanel();
 	void ToggleSkillPanel();
 	void Interact();
+	void AutoMove();
 
 	UFUNCTION()
 	void OnLevelUp(int32 NewLevel, int32 OldLevel);
+
+	/** 스킬 습득 시 호출 — 콤보 해금 패시브 처리 */
+	void OnSkillLearnedForCombo(FName SkillID);
 	
 public:
 	TObjectPtr<class USpringArmComponent> GetCameraBoom() const { return CameraBoom; }

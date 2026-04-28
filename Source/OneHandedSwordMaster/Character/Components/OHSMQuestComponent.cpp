@@ -57,6 +57,10 @@ bool UOHSMQuestComponent::AcceptQuest(FName QuestID)
 
 	ActiveQuestProgress.Add(QuestID, Progress);
 	OnQuestAccepted.Broadcast(QuestID);
+
+	// 수락과 동시에 자동 추적 (TrackedQuestIDs 최대 3개)
+	TrackQuest(QuestID);
+
 	return true;
 }
 

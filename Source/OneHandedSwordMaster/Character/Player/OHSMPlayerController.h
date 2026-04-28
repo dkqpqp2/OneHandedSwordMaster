@@ -112,6 +112,53 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Quest")
 	void CloseQuestPanel();
 
+	/** B 키 — 첫 번째 추적 퀘스트 목표 위치로 자동이동 */
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	void TriggerAutoMove();
+
+// ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
+public:
+	/** PlayerCharacter::SetDead 에서 호출 — 보유 부활 포션 개수 전달 */
+	void HandlePlayerDeath(int32 PotionCount);
+
+	/** 부활 포션 사용 (사망 화면의 버튼에서 호출) */
+	void UseRevivalPotion();
+
+protected:
+	void InitializeDeathWidget();
+
+	/** 사망 화면 표시 */
+	void ShowDeathScreen(int32 PotionCount);
+
+	/** 사망 화면 숨김 */
+	void HideDeathScreen();
+
+	/** 카운트다운 0.1초마다 UI 업데이트 */
+	void UpdateCountdown();
+
+	/** 카운트다운 종료 → 리스폰 구역으로 이동 */
+	void ExecuteRespawn();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Respawn")
+	TSubclassOf<class UOHSMDeathWidget> DeathWidgetClass;
+
+	/** 리스폰 대기 시간 (초) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Respawn", meta = (ClampMin = "1"))
+	float RespawnDelay = 5.0f;
+
+	/** 부활 포션 사용 시 회복할 HP 비율 (0~1) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Respawn", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+	float RevivalHealPercent = 0.3f;
+
+private:
+	UPROPERTY()
+	TObjectPtr<class UOHSMDeathWidget> DeathWidget;
+
+	FTimerHandle RespawnTimerHandle;
+	FTimerHandle CountdownTimerHandle;
+	float RespawnTimeRemaining = 0.0f;
+
 	
 	UFUNCTION(BlueprintPure, Category = "UI")
 	UOHSMInventoryWidget* GetInventoryWidget() const { return InventoryWidget; }

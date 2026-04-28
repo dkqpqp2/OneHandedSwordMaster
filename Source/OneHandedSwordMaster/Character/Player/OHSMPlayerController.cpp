@@ -17,6 +17,11 @@
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
 #include "OneHandedSwordMaster/Character/UI/Quest/OHSMQuestPanelWidget.h"
 #include "OneHandedSwordMaster/NPC/OHSMQuestNPC.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMQuestNavigationComponent.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "OneHandedSwordMaster/Character/UI/OHSMDeathWidget.h"
+#include "OneHandedSwordMaster/World/OHSMRespawnZone.h"
+#include "EngineUtils.h"
 
 AOHSMPlayerController::AOHSMPlayerController()
 {
@@ -48,6 +53,7 @@ void AOHSMPlayerController::BeginPlay()
 	InitializeInteractionWidget();
 	InitializeSkillPanel();
 	InitializeQuestPanel();
+	InitializeDeathWidget();
 }
 
 void AOHSMPlayerController::InitializeHUDWidget()
@@ -235,6 +241,9 @@ void AOHSMPlayerController::SetInteractableActor(AActor* InActor)
 
 void AOHSMPlayerController::TryInteract()
 {
+	// 퀘스트 패널 등 UI 창이 열려있으면 상호작용 차단
+	if (IsAnyWindowOpen()) return;
+
 	if (!IsValid(CurrentInteractableActor)) return;
 
 	IOHSMInteractableInterface* Interactable =
@@ -370,6 +379,9 @@ void AOHSMPlayerController::OpenQuestPanel(AOHSMQuestNPC* QuestNPC)
 	QuestPanelWidget->InitializePanel(QuestComp, QuestNPC);
 	QuestPanelWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+	// 퀘스트 패널이 열리면 "[G] 대화하기" 힌트 UI 숨김
+	HideInteractionWidget();
+
 	bIsQuestPanelOpen = true;
 	UpdateInputMode();
 }
@@ -382,12 +394,203 @@ void AOHSMPlayerController::CloseQuestPanel()
 	UpdateInputMode();
 }
 
+void AOHSMPlayerController::TriggerAutoMove()
+{
+	if (IsAnyWindowOpen())
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = GetPawn();
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	UOHSMQuestNavigationComponent* NavComp =
+		PlayerPawn->FindComponentByClass<UOHSMQuestNavigationComponent>();
+	if (!NavComp)
+	{
+		return;
+	}
+
+	UOHSMQuestComponent* QuestComp =
+		PlayerPawn->FindComponentByClass<UOHSMQuestComponent>();
+	if (!QuestComp)
+	{
+		return;
+	}
+
+	const TArray<FName>& TrackedIDs = QuestComp->GetTrackedQuestIDs();
+	if (TrackedIDs.IsEmpty())
+	{
+		return;
+	}
+
+	FVector TargetLocation;
+	if (NavComp->FindQuestTargetLocation(TrackedIDs[0], TargetLocation))
+	{
+		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, TargetLocation);
+	}
+}
+
 bool AOHSMPlayerController::IsAnyWindowOpen() const
 {
 	const bool bInventoryOpen = InventoryWidget && InventoryWidget->IsVisible();
 	const bool bEquipmentOpen = EquipmentWidget && EquipmentWidget->IsVisible();
 	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
 	return bInventoryOpen || bEquipmentOpen || bCraftOpen || bIsDialogueOpen || bIsSkillPanelOpen || bIsQuestPanelOpen;
+}
+
+// ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
+
+void AOHSMPlayerController::InitializeDeathWidget()
+{
+	if (!DeathWidgetClass)
+	{
+		return;
+	}
+
+	DeathWidget = CreateWidget<UOHSMDeathWidget>(this, DeathWidgetClass);
+	if (!DeathWidget)
+	{
+		return;
+	}
+
+	DeathWidget->AddToViewport(50);
+	DeathWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+	// 부활 포션 버튼 클릭 시 연결
+	DeathWidget->OnRevivalPotionRequested.AddUObject(this, &AOHSMPlayerController::UseRevivalPotion);
+
+	// 마을에서 부활하기 버튼 클릭 시 연결
+	DeathWidget->OnRespawnAtTownRequested.AddUObject(this, &AOHSMPlayerController::ExecuteRespawn);
+}
+
+void AOHSMPlayerController::HandlePlayerDeath(int32 PotionCount)
+{
+	ShowDeathScreen(PotionCount);
+
+	RespawnTimeRemaining = RespawnDelay;
+
+	// 0.1초마다 UI 카운트다운 갱신
+	GetWorldTimerManager().SetTimer(
+		CountdownTimerHandle,
+		this,
+		&AOHSMPlayerController::UpdateCountdown,
+		0.1f,
+		true
+	);
+
+	// RespawnDelay 후 자동 리스폰
+	GetWorldTimerManager().SetTimer(
+		RespawnTimerHandle,
+		this,
+		&AOHSMPlayerController::ExecuteRespawn,
+		RespawnDelay,
+		false
+	);
+}
+
+void AOHSMPlayerController::ShowDeathScreen(int32 PotionCount)
+{
+	if (!DeathWidget)
+	{
+		return;
+	}
+
+	DeathWidget->UpdateRevivalButton(PotionCount);
+	DeathWidget->UpdateCountdown(RespawnDelay, RespawnDelay);
+	DeathWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	// 마우스 커서 표시 (부활 포션 버튼 클릭 가능하도록)
+	SetShowMouseCursor(true);
+	FInputModeUIOnly UIMode;
+	SetInputMode(UIMode);
+}
+
+void AOHSMPlayerController::HideDeathScreen()
+{
+	if (!DeathWidget)
+	{
+		return;
+	}
+
+	DeathWidget->SetVisibility(ESlateVisibility::Collapsed);
+	SetShowMouseCursor(false);
+	FInputModeGameOnly GameMode;
+	SetInputMode(GameMode);
+}
+
+void AOHSMPlayerController::UpdateCountdown()
+{
+	RespawnTimeRemaining -= 0.1f;
+
+	if (DeathWidget)
+	{
+		DeathWidget->UpdateCountdown(FMath::Max(0.0f, RespawnTimeRemaining), RespawnDelay);
+	}
+}
+
+void AOHSMPlayerController::UseRevivalPotion()
+{
+	// 타이머 취소
+	GetWorldTimerManager().ClearTimer(RespawnTimerHandle);
+	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+
+	HideDeathScreen();
+
+	AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(GetPawn());
+	if (!PlayerChar)
+	{
+		return;
+	}
+
+	if (PlayerChar->ConsumeRevivalPotion())
+	{
+		// 제자리 부활 — HP RevivalHealPercent 만큼 회복
+		PlayerChar->Revive(PlayerChar->GetActorLocation(), RevivalHealPercent);
+	}
+}
+
+void AOHSMPlayerController::ExecuteRespawn()
+{
+	// 타이머와 버튼 양쪽에서 호출될 수 있으므로 중복 실행 방지
+	GetWorldTimerManager().ClearTimer(RespawnTimerHandle);
+	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+	HideDeathScreen();
+
+	AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(GetPawn());
+	if (!PlayerChar)
+	{
+		return;
+	}
+
+	// 우선순위가 가장 낮은 RespawnZone 탐색
+	AOHSMRespawnZone* BestZone = nullptr;
+	int32 BestPriority = INT_MAX;
+
+	for (TActorIterator<AOHSMRespawnZone> It(GetWorld()); It; ++It)
+	{
+		AOHSMRespawnZone* Zone = *It;
+		if (!IsValid(Zone))
+		{
+			continue;
+		}
+
+		if (Zone->GetPriority() < BestPriority)
+		{
+			BestPriority = Zone->GetPriority();
+			BestZone = Zone;
+		}
+	}
+
+	FVector RespawnLocation = BestZone
+		? BestZone->GetRespawnLocation()
+		: PlayerChar->GetActorLocation();
+
+	// 리스폰 구역 도착 — HP 100% 회복
+	PlayerChar->Revive(RespawnLocation, 1.0f);
 }
 
 void AOHSMPlayerController::UpdateInputMode()

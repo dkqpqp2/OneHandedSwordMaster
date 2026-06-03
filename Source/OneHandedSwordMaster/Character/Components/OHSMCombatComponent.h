@@ -99,10 +99,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	int32 GetMaxComboCount() const { return MaxComboCount; }
 	
+	/** 넉다운·외부 중단 시 콤보·이동 잠금 강제 해제 */
+	void ResetCombo();
+
 protected:
 	void InitializeComboRows();
-	
-	void ResetCombo();
 	
 	UFUNCTION()
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);

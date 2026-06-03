@@ -5,6 +5,7 @@
 
 #include "GameFramework/Character.h"
 
+// 공격 스킬 발동
 void UOHSMAttackSkill::ActivateSkill_Implementation(ACharacter* Instigator)
 {
 	if (!IsValid(Instigator) || !IsValid(SkillMontage))
@@ -12,9 +13,7 @@ void UOHSMAttackSkill::ActivateSkill_Implementation(ACharacter* Instigator)
 		return;
 	}
 
-	// 발동 이펙트 스폰
-	SpawnActivateEffect(Instigator);
+	SpawnActivateEffect(Instigator); // 발동 이펙트 스폰
 
-	// 몽타주 재생 + 몽타주가 끝날 때까지 이동 잠금
-	PlayMontageAndBlockMovement(Instigator, SkillMontage, PlayRate);
+	PlayMontageAndBlockMovement(Instigator, SkillMontage, PlayRate); // 몽타주 재생
 }

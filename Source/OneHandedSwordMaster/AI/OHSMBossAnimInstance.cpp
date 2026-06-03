@@ -20,6 +20,14 @@ void UOHSMBossAnimInstance::AnimNotify_BossAreaAttack()
 	}
 }
 
+void UOHSMBossAnimInstance::AnimNotify_BossGroundSlamCharge()
+{
+	if (AOHSMBossBase* Boss = Cast<AOHSMBossBase>(TryGetPawnOwner()))
+	{
+		Boss->TriggerGroundSlamCharge();
+	}
+}
+
 void UOHSMBossAnimInstance::AnimNotify_BossGroundSlam()
 {
 	if (AOHSMBossBase* Boss = Cast<AOHSMBossBase>(TryGetPawnOwner()))

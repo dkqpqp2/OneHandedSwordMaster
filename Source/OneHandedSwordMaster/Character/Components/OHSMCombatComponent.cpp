@@ -83,14 +83,13 @@ void UOHSMCombatComponent::PerformBasicAttack()
 		return;
 	}
 
-	// ── 무기 장착 여부 확인 ──────────────────────────────────────────
+	// 무기 장착 여부 확인
 	if (AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(OwnerCharacter))
 	{
 		UOHSMEquipmentComponent* EquipComp = PlayerChar->GetEquipmentComponent();
 		if (!EquipComp || EquipComp->IsSlotEmpty(EEquipmentSlot::Weapon))
 		{
-			// 무기가 없으면 공격 불가
-			return;
+			return; // 무기가 없으면 공격 불가
 		}
 	}
 
@@ -142,16 +141,14 @@ void UOHSMCombatComponent::PerformBasicAttack()
 		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
 		if (Movement)
 		{
-			// 속도가 0이 아닐 때만 캐시 갱신
-			// (연속 콤보 중엔 이미 0이므로 원본 값을 덮어쓰지 않음)
 			if (Movement->MaxWalkSpeed > 0.0f)
 			{
-				CachedMaxWalkSpeed    = Movement->MaxWalkSpeed;
+				CachedMaxWalkSpeed = Movement->MaxWalkSpeed;
 				CachedMaxAcceleration = Movement->MaxAcceleration;
 			}
 
 			// 공격 중 이동 잠금
-			Movement->MaxWalkSpeed    = 0.0f;
+			Movement->MaxWalkSpeed = 0.0f;
 			Movement->MaxAcceleration = 0.0f;
 		}
 	}
@@ -205,16 +202,16 @@ void UOHSMCombatComponent::ResetCombo()
 	GetWorld()->GetTimerManager().ClearTimer(ComboResetTimerHandle);
 
 	CurrentComboIndex = 0;
-	bCanNextCombo     = false;
-	bCanReceiveInput  = false;
-	bIsAttacking      = false;
+	bCanNextCombo = false;
+	bCanReceiveInput = false;
+	bIsAttacking = false;
 
 	if (OwnerCharacter)
 	{
 		UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement();
 		if (Movement)
 		{
-			Movement->MaxWalkSpeed    = CachedMaxWalkSpeed;
+			Movement->MaxWalkSpeed = CachedMaxWalkSpeed;
 			Movement->MaxAcceleration = CachedMaxAcceleration;
 		}
 	}

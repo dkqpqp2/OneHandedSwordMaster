@@ -19,7 +19,7 @@ class ONEHANDEDSWORDMASTER_API UOHSMBossHpBarWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual void NativeDestruct() override;
 
 // ─── BindWidget ────────────────────────────────────────────────────────────
 protected:
@@ -34,6 +34,10 @@ protected:
 	// 현재HP / 최대HP 숫자 텍스트 (선택)
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UTextBlock> TextBossHp;
+
+	// 광폭화 텍스트 (체력바 아래 — Phase 2 이상 시 표시)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> TextEnrage;
 
 // ─── 설정값 ────────────────────────────────────────────────────────────────
 protected:
@@ -51,9 +55,11 @@ private:
 	UPROPERTY()
 	TObjectPtr<class AOHSMEnemyBase> CurrentBoss;
 
-	float SearchTimer = 0.0f;
+	// NativeTick 대신 타이머로 보스 탐색 (Widget Tick 활성화 이슈 우회)
+	FTimerHandle SearchTimerHandle;
 
 	// 주기적으로 가장 가까운 보스 탐색
+	UFUNCTION()
 	void FindNearestBoss();
 
 	// 보스 변경 (nullptr이면 숨김)
@@ -65,4 +71,7 @@ private:
 
 	UFUNCTION()
 	void OnBossDied(AActor* Killer);
+
+	// 보스 페이즈 변경 콜백 — Phase 2 이상 시 광폭화 텍스트 표시
+	void OnBossPhaseChanged(int32 NewPhase);
 };

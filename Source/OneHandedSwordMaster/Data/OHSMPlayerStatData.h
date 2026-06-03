@@ -36,26 +36,21 @@ USTRUCT(BlueprintType)
 struct FPlayerStat
 {
 	GENERATED_BODY()
-    
-	/** 기본값 */
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
 	float BaseValue = 0.0f;
-    
-	/** 장비 보너스 */
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Stat")
 	float EquipmentBonus = 0.0f;
-    
-	/** 임시 버프/디버프 */
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Stat")
 	float TemporaryBonus = 0.0f;
-    
-	/** 최종값 계산 */
+	
 	float GetFinalValue() const
 	{
 		return BaseValue + EquipmentBonus + TemporaryBonus;
 	}
-    
-	/** 퍼센트 보너스 적용 */
+	
 	float GetFinalValueWithPercent(float PercentBonus = 0.0f) const
 	{
 		float base = GetFinalValue();

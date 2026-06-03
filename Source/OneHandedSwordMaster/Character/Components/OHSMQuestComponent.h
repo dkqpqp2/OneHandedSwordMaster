@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "OneHandedSwordMaster/Data/OHSMQuestData.h"
+#include "OneHandedSwordMaster/Data/OHSMQuestData.h"   // FQuestSaveEntry 포함
 #include "OHSMQuestComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnQuestAccepted,         FName /*QuestID*/);
@@ -38,7 +38,7 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
-	/** BP_PlayerCharacter 디폴트에서 DT_QuestData 지정 */
+	// 퀘스트 데이터 테이블
 	UPROPERTY(EditDefaultsOnly, Category = "Quest")
 	TObjectPtr<UDataTable> QuestDataTable;
 
@@ -57,35 +57,30 @@ protected:
 	TArray<FName> TrackedQuestIDs;
 
 public:
-	// ─── 퀘스트 수락 / 완료 ──────────────────────────────────────────────
-
-	/** 수락 조건 확인 (선행 퀘스트 완료 + 중복 방지) */
+	// 수락 조건 확인 (선행 퀘스트 완료 + 중복 방지)
 	bool CanAcceptQuest(FName QuestID) const;
 
-	/** 퀘스트 수락 — 성공 시 true */
+	// 퀘스트 수락 — 성공 시 true
 	bool AcceptQuest(FName QuestID);
 
-	/** 모든 목표가 달성됐는지 */
+	// 모든 목표가 달성됐는지
 	bool CanCompleteQuest(FName QuestID) const;
 
-	/** 퀘스트 완료 — 보상 지급 후 ActiveQuest 에서 제거 */
+	// 퀘스트 완료 — 보상 지급 후 ActiveQuest 에서 제거
 	void CompleteQuest(FName QuestID);
-
-	// ─── 진행도 업데이트 ─────────────────────────────────────────────────
-
-	/** 적 처치 시 호출 (EnemyID 와 Kill 목표 TargetID 비교) */
+	
+	// 적 처치 시 호출 (EnemyID 와 Kill 목표 TargetID 비교)
 	void NotifyEnemyKilled(FName EnemyID);
 
-	/** 아이템 획득 시 호출 */
+	// 아이템 획득 시 호출 (OnItemAdded 델리게이트에 직접 바인딩 가능하도록 UFUNCTION)
+	UFUNCTION()
 	void NotifyItemCollected(FName ItemID, int32 Count = 1);
 
-	/** NPC 대화 시 호출 */
+	// NPC 대화 시 호출
 	void NotifyTalkedToNPC(FName NPCID);
 
-	/** 스킬 습득 시 호출 */
+	// 스킬 습득 시 호출
 	void NotifySkillLearned(FName SkillID);
-
-	// ─── 조회 ────────────────────────────────────────────────────────────
 
 	EQuestState GetQuestState(FName QuestID) const;
 
@@ -102,6 +97,15 @@ public:
 
 	/** 완료된 퀘스트 ID 집합 반환 */
 	const TSet<FName>& GetCompletedQuestIDs() const { return CompletedQuests; }
+
+	/** 진행 중인 퀘스트 진행도 맵 반환 (저장용) */
+	const TMap<FName, FQuestProgress>& GetActiveQuestProgress() const { return ActiveQuestProgress; }
+
+	/** 맵 이동 후 퀘스트 상태 전체 복원 */
+	void RestoreFromSave(
+		const TArray<FQuestSaveEntry>& ActiveQuestSaves,
+		const TArray<FName>&           InCompletedQuests,
+		const TArray<FName>&           InTrackedQuests);
 
 	// ─── 추적 ─────────────────────────────────────────────────────────────
 

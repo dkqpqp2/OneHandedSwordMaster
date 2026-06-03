@@ -27,6 +27,10 @@ void UOHSMBTService_BossPhaseCheck::TickNode(
 		return;
 	}
 
-	BB->SetValueAsInt(TEXT("BossPhase"),        Boss->GetCurrentPhase());
-	BB->SetValueAsBool(TEXT("bIsPhaseChanging"), Boss->IsPhaseChanging());
+	BB->SetValueAsInt(TEXT("BossPhase"),             Boss->GetCurrentPhase());
+	BB->SetValueAsBool(TEXT("bIsPhaseChanging"),     Boss->IsPhaseChanging());
+
+	// 현재 거리·쿨다운·페이즈 조건을 모두 만족하는 공격 패턴 존재 여부
+	// → BT 데코레이터가 이 값을 보고 BossChase를 끊고 BossAttack을 실행
+	BB->SetValueAsBool(TEXT("bHasAvailablePattern"), Boss->HasAnyAvailablePattern());
 }

@@ -78,6 +78,10 @@ protected:
 	void InitializeSkillPanel();
 	void InitializeQuestPanel();
 
+public:
+	// 맵 이동 후 위젯-컴포넌트 재연결 (LoadFromGameInstance 완료 후 호출)
+	void RefreshWidgetConnections();
+
 	/** 현재 열린 창 상태에 따라 입력 모드 / 마우스 커서 자동 갱신 */
 	void UpdateInputMode();
 
@@ -112,9 +116,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Quest")
 	void CloseQuestPanel();
 
-	/** B 키 — 첫 번째 추적 퀘스트 목표 위치로 자동이동 */
+	/** B 키 — 자동이동 토글 (이동 중이면 중지, 아니면 첫 추적 퀘스트로 이동) */
 	UFUNCTION(BlueprintCallable, Category = "Navigation")
 	void TriggerAutoMove();
+
+	/** 자동이동 중 여부 */
+	UFUNCTION(BlueprintPure, Category = "Navigation")
+	bool IsAutoMoving() const { return bIsAutoMoving; }
+
+	/** 지정 위치로 자동이동 시작 (상태 플래그 포함) */
+	void StartAutoMoveTo(const FVector& TargetLocation);
+
+	/** 자동이동 중지 */
+	UFUNCTION(BlueprintCallable, Category = "Navigation")
+	void StopAutoMove();
 
 // ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
 public:
@@ -204,6 +219,7 @@ private:
 	bool bIsDialogueOpen    = false;
 	bool bIsSkillPanelOpen  = false;
 	bool bIsQuestPanelOpen  = false;
+	bool bIsAutoMoving      = false;
 
 protected:
 	UFUNCTION()

@@ -28,6 +28,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> SellPriceText;
 
+	/** 장비 스탯 표시 (공격력 / 방어력 등) — 없어도 빌드 오류 X */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> StatText;
+
 public:
 	void UpdateTooltip(const FItemData& ItemData);
 };

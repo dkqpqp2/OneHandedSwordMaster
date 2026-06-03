@@ -118,6 +118,9 @@ protected:
 	FVector2D ResizeStartPosition;
 	
 public:
+	// 현재 연결된 인벤토리 컴포넌트 (null이면 미초기화)
+	UOHSMInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitializeInventory(UOHSMInventoryComponent* InInventory);
 	

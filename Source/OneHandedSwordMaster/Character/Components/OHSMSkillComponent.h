@@ -37,36 +37,36 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** 스킬 데이터 테이블 — BP 디폴트에서 DT_SkillData를 지정 */
+	// 스킬 데이터 테이블
 	UPROPERTY(EditDefaultsOnly, Category = "Skill")
 	TObjectPtr<UDataTable> SkillDataTable;
 
 public:
 	// ─── 스킬 트리 ─────────────────────────────────────────────────
 
-	/** 이 스킬을 배울 수 있는지 확인 (포인트·전제 조건 모두 검사) */
+	// 습득 가능 여부 확인
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool CanLearnSkill(FName SkillID) const;
 
-	/** 스킬 습득 — 실패 시 false 반환 */
+	// 스킬 습득
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool LearnSkill(FName SkillID);
 
-	/** 해당 스킬을 배웠는지 */
+	// 습득 여부 확인
 	UFUNCTION(BlueprintPure, Category = "Skill")
 	bool IsSkillLearned(FName SkillID) const;
 
 	// ─── 스킬 사용 ─────────────────────────────────────────────────
 
-	/** 마나 소모·쿨다운 검사 후 스킬 발동 */
+	// 스킬 발동
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool ActivateSkill(FName SkillID);
 
-	/** 쿨다운 중인지 */
+	// 쿨다운 중 여부
 	UFUNCTION(BlueprintPure, Category = "Skill")
 	bool IsSkillOnCooldown(FName SkillID) const;
 
-	/** 남은 쿨다운 시간 (초) — 쿨다운 중이 아니면 0 */
+	// 남은 쿨다운 시간
 	UFUNCTION(BlueprintPure, Category = "Skill")
 	float GetRemainingCooldown(FName SkillID) const;
 
@@ -80,14 +80,20 @@ public:
 
 	// ─── 조회 ─────────────────────────────────────────────────────
 
-	/** DataTable에서 스킬 데이터 반환 (없으면 nullptr) */
+	// 스킬 데이터 조회
 	const FOHSMSkillData* GetSkillData(FName SkillID) const;
 
-	/** DataTable의 모든 스킬 Row Name 반환 */
+	// 저장 데이터로 복원
+	void RestoreFromSave(const TArray<FName>& SkillIDs, int32 Points);
+
+	// 발동 스킬 데미지 배율
+	float GetActiveSkillEffectValue() const { return ActiveSkillEffectValue; }
+
+	// 전체 스킬 ID 반환
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	TArray<FName> GetAllSkillIDs() const;
 
-	/** 배운 스킬 목록 반환 */
+	// 습득 스킬 목록 반환
 	UFUNCTION(BlueprintPure, Category = "Skill")
 	TArray<FName> GetLearnedSkillIDs() const { return LearnedSkills.Array(); }
 
@@ -113,9 +119,12 @@ private:
 	UPROPERTY()
 	int32 AvailableSkillPoints = 0;
 
-	/** 스킬ID → 인스턴스 캐시 (처음 사용 시 생성) */
+	// 스킬 인스턴스 캐시
 	UPROPERTY()
 	TMap<FName, TObjectPtr<UOHSMSkillBase>> SkillInstances;
 
 	UOHSMSkillBase* GetOrCreateSkillInstance(FName SkillID);
+
+	// 마지막 발동 스킬 배율
+	float ActiveSkillEffectValue = 1.0f;
 };

@@ -19,6 +19,7 @@ void UOHSMSkillComponent::BeginPlay()
 
 // ─── 스킬 트리 ──────────────────────────────────────────────────────
 
+// 스킬 습득 가능 여부 확인
 bool UOHSMSkillComponent::CanLearnSkill(FName SkillID) const
 {
 	const FOHSMSkillData* Data = GetSkillData(SkillID);
@@ -33,20 +34,21 @@ bool UOHSMSkillComponent::CanLearnSkill(FName SkillID) const
 	// 전제 스킬 확인
 	for (const FName& PrereqID : Data->PrerequisiteSkillIDs)
 	{
-		if (!IsSkillLearned(PrereqID)) return false;
+		if (!IsSkillLearned(PrereqID)) return false; // 전제 미완료
 	}
 
 	return true;
 }
 
+// 스킬 습득 처리
 bool UOHSMSkillComponent::LearnSkill(FName SkillID)
 {
 	if (!CanLearnSkill(SkillID)) return false;
 
 	const FOHSMSkillData* Data = GetSkillData(SkillID);
-	AvailableSkillPoints -= Data->SkillPointCost;
+	AvailableSkillPoints -= Data->SkillPointCost; // 포인트 차감
 
-	LearnedSkills.Add(SkillID);
+	LearnedSkills.Add(SkillID); // 습득 목록에 추가
 
 	// 패시브 스킬이면 습득 즉시 영구 효과 적용
 	if (Data->SkillType == ESkillType::Passive)
@@ -75,9 +77,10 @@ bool UOHSMSkillComponent::IsSkillLearned(FName SkillID) const
 
 // ─── 스킬 사용 ──────────────────────────────────────────────────────
 
+// 스킬 발동 처리
 bool UOHSMSkillComponent::ActivateSkill(FName SkillID)
 {
-	if (!IsSkillLearned(SkillID)) return false;
+	if (!IsSkillLearned(SkillID)) return false; // 미습득 스킬
 
 	const FOHSMSkillData* Data = GetSkillData(SkillID);
 	if (!Data) return false;
@@ -110,6 +113,9 @@ bool UOHSMSkillComponent::ActivateSkill(FName SkillID)
 
 	// 쿨다운 시작
 	Instance->StartCooldown(Now, Data->Cooldown);
+
+	// 현재 발동 스킬의 EffectValue 저장 — AnimNotifyState_SkillHit 에서 데미지 배율로 사용
+	ActiveSkillEffectValue = Data->EffectValue;
 
 	// 스킬 발동
 	Instance->ActivateSkill(OwnerChar);
@@ -156,13 +162,46 @@ float UOHSMSkillComponent::GetRemainingCooldown(FName SkillID) const
 	return 0.f;
 }
 
+// ─── 저장 복원 ──────────────────────────────────────────────────────────
+
+void UOHSMSkillComponent::RestoreFromSave(const TArray<FName>& SkillIDs, int32 Points)
+{
+	LearnedSkills.Empty();
+	AvailableSkillPoints = Points;
+
+	ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
+
+	for (const FName& SkillID : SkillIDs)
+	{
+		LearnedSkills.Add(SkillID);
+
+		// 패시브 스킬은 습득 즉시 영구 효과를 적용해야 하므로 OnLearned 재호출
+		const FOHSMSkillData* Data = GetSkillData(SkillID);
+		if (Data && Data->SkillType == ESkillType::Passive && IsValid(OwnerChar))
+		{
+			UOHSMSkillBase* Instance = GetOrCreateSkillInstance(SkillID);
+			if (Instance)
+			{
+				Instance->OnLearned(OwnerChar);
+			}
+		}
+
+		// OnSkillLearned 구독자에게 복원 알림
+		// → OnSkillLearnedForCombo() 등 패시브 효과(콤보 해금 등)를 재적용
+		OnSkillLearned.Broadcast(SkillID);
+	}
+
+	OnSkillPointsChanged.Broadcast();
+}
+
 // ─── 스킬 포인트 ────────────────────────────────────────────────────
 
+// 스킬 포인트 추가
 void UOHSMSkillComponent::AddSkillPoints(int32 Amount)
 {
 	if (Amount <= 0) return;
-	AvailableSkillPoints += Amount;
-	OnSkillPointsChanged.Broadcast();
+	AvailableSkillPoints += Amount; // 포인트 누적
+	OnSkillPointsChanged.Broadcast(); // UI 갱신
 }
 
 // ─── 조회 ───────────────────────────────────────────────────────────

@@ -25,9 +25,8 @@ protected:
 	UFUNCTION()
 	void OnClickedCraft();
 
-	/** 인벤토리 변경 시 제작 버튼 상태 갱신 */
-	UFUNCTION()
-	void OnInventoryUpdated(int32 SlotIndex);
+	/** 인벤토리 변경 시 제작 버튼 상태 갱신 (UOHSMCraftInfo::OnInventoryUpdated override) */
+	virtual void OnInventoryUpdated(int32 SlotIndex) override;
 
 	void UpdateCraftButton();
 

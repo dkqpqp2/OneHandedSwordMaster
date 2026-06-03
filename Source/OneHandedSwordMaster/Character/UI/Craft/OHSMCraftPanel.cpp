@@ -97,6 +97,9 @@ void UOHSMCraftPanel::NativeConstruct()
 		RootEntry->AddChild(ChildEntry);
 	}
 
+	// UPROPERTY 캐시에 저장해야 GC가 수거하지 않음
+	CachedRootItems = RootItems;
+
 	CraftItemView->SetListItems(RootItems);
 	CraftItemView->CollapseAll();
 	CraftItemView->OnItemClicked().AddUObject(this, &UOHSMCraftPanel::OnCraftItemClicked);

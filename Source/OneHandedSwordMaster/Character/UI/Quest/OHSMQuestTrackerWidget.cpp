@@ -6,6 +6,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestNavigationComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
 #include "OneHandedSwordMaster/Data/OHSMQuestData.h"
 
 // ─── 초기화 ──────────────────────────────────────────────────────────────────
@@ -103,17 +104,18 @@ void UOHSMQuestTrackerWidget::Refresh()
 
 void UOHSMQuestTrackerWidget::HandleAutoMove(FName QuestID)
 {
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer());
+	if (!PC) return;
+
+	// 이미 자동이동 중이면 중지
+	if (PC->IsAutoMoving())
 	{
+		PC->StopAutoMove();
 		return;
 	}
 
 	APawn* Pawn = PC->GetPawn();
-	if (!Pawn)
-	{
-		return;
-	}
+	if (!Pawn) return;
 
 	UOHSMQuestNavigationComponent* NavComp =
 		Pawn->FindComponentByClass<UOHSMQuestNavigationComponent>();
@@ -129,6 +131,6 @@ void UOHSMQuestTrackerWidget::HandleAutoMove(FName QuestID)
 
 	if (bFoundTarget)
 	{
-		UAIBlueprintHelperLibrary::SimpleMoveToLocation(PC, TargetLocation);
+		PC->StartAutoMoveTo(TargetLocation);
 	}
 }

@@ -166,6 +166,9 @@ void AOHSMPlayerController::ShowInteractionWidget(const FText& InHintText)
 {
 	if (!InteractionWidget) return;
 
+	// 제작창이 열려있으면 힌트 표시 안 함
+	if (CraftWidget && CraftWidget->IsVisible()) return;
+
 	InteractionWidget->SetInteractionText(InHintText);
 	InteractionWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
@@ -200,6 +203,9 @@ void AOHSMPlayerController::OpenCraftPanel()
 	{
 		return;
 	}
+
+	// 제작창이 열리면 "[E] 대화하기" 힌트 UI 숨김
+	HideInteractionWidget();
 
 	CraftWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	CraftWidget->SetKeyboardFocus();
@@ -401,21 +407,25 @@ void AOHSMPlayerController::TriggerAutoMove()
 		return;
 	}
 
+	if (bIsAutoMoving)
+	{
+		StopAutoMove();
+		return;
+	}
+
 	APawn* PlayerPawn = GetPawn();
 	if (!PlayerPawn)
 	{
 		return;
 	}
 
-	UOHSMQuestNavigationComponent* NavComp =
-		PlayerPawn->FindComponentByClass<UOHSMQuestNavigationComponent>();
+	UOHSMQuestNavigationComponent* NavComp = PlayerPawn->FindComponentByClass<UOHSMQuestNavigationComponent>();
 	if (!NavComp)
 	{
 		return;
 	}
 
-	UOHSMQuestComponent* QuestComp =
-		PlayerPawn->FindComponentByClass<UOHSMQuestComponent>();
+	UOHSMQuestComponent* QuestComp = PlayerPawn->FindComponentByClass<UOHSMQuestComponent>();
 	if (!QuestComp)
 	{
 		return;
@@ -430,8 +440,20 @@ void AOHSMPlayerController::TriggerAutoMove()
 	FVector TargetLocation;
 	if (NavComp->FindQuestTargetLocation(TrackedIDs[0], TargetLocation))
 	{
-		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, TargetLocation);
+		StartAutoMoveTo(TargetLocation);
 	}
+}
+
+void AOHSMPlayerController::StartAutoMoveTo(const FVector& TargetLocation)
+{
+	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, TargetLocation);
+	bIsAutoMoving = true;
+}
+
+void AOHSMPlayerController::StopAutoMove()
+{
+	StopMovement();
+	bIsAutoMoving = false;
 }
 
 bool AOHSMPlayerController::IsAnyWindowOpen() const
@@ -441,8 +463,6 @@ bool AOHSMPlayerController::IsAnyWindowOpen() const
 	const bool bCraftOpen     = CraftWidget     && CraftWidget->IsVisible();
 	return bInventoryOpen || bEquipmentOpen || bCraftOpen || bIsDialogueOpen || bIsSkillPanelOpen || bIsQuestPanelOpen;
 }
-
-// ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
 
 void AOHSMPlayerController::InitializeDeathWidget()
 {
@@ -591,6 +611,61 @@ void AOHSMPlayerController::ExecuteRespawn()
 
 	// 리스폰 구역 도착 — HP 100% 회복
 	PlayerChar->Revive(RespawnLocation, 1.0f);
+}
+
+void AOHSMPlayerController::RefreshWidgetConnections()
+{
+	AOHSMPlayerCharacter* PlayerChar = Cast<AOHSMPlayerCharacter>(GetPawn());
+	if (!PlayerChar) return;
+
+	// 인벤토리 위젯 — 컴포넌트가 교체됐으면 재초기화, 같으면 슬롯만 갱신
+	if (InventoryWidget)
+	{
+		UOHSMInventoryComponent* InvComp = PlayerChar->GetInventoryComponent();
+		if (InvComp)
+		{
+			if (InventoryWidget->GetInventoryComponent() != InvComp)
+			{
+				// 미연결이거나 맵 전환으로 컴포넌트가 교체된 경우 → 재연결
+				InventoryWidget->InitializeInventory(InvComp);
+				InvComp->OnItemAdded.AddDynamic(this, &AOHSMPlayerController::OnItemPickedUp);
+			}
+			else
+			{
+				// 같은 컴포넌트 — 복원된 데이터로 전체 슬롯만 갱신
+				InventoryWidget->RefreshAllSlots();
+			}
+		}
+	}
+
+	// 스킬 패널 — SetSkillComponent는 내부적으로 이전 구독을 제거하므로 안전하게 재호출 가능
+	if (SkillPanelWidget)
+	{
+		if (UOHSMSkillComponent* SkillComp = PlayerChar->GetSkillComponent())
+		{
+			SkillPanelWidget->SetSkillComponent(SkillComp);
+		}
+	}
+
+	// 장비창 — 컴포넌트가 교체됐을 때만 재초기화
+	if (EquipmentWidget)
+	{
+		UOHSMEquipmentComponent* EquipComp = PlayerChar->GetEquipmentComponent();
+		UOHSMInventoryComponent* InvComp   = PlayerChar->GetInventoryComponent();
+		UOHSMPlayerStatComponent* StatComp = PlayerChar->GetStatComponent();
+		if (EquipComp && InvComp && EquipmentWidget->GetEquipmentComponent() != EquipComp)
+		{
+			EquipmentWidget->InitializeEquipment(EquipComp, InvComp, StatComp);
+		}
+	}
+
+	// HUD 퀵슬롯 + 버프바 재연결
+	// LoadFromGameInstance에서 QuickSlot 데이터 복원 후 이 함수가 호출되므로
+	// InitializeQuickSlots() 내부의 RefreshSlot()이 복원된 데이터를 즉시 반영함
+	if (OHSMHUDWidget)
+	{
+		OHSMHUDWidget->InitializeQuickSlots();
+	}
 }
 
 void AOHSMPlayerController::UpdateInputMode()

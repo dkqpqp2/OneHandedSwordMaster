@@ -66,11 +66,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EEnemyPersonality Personality = EEnemyPersonality::Aggressive;
 	
-	/** 감지 범위 */
+	// 감지 범위 (cm)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Detection", meta = (ClampMin = "100"))
 	float DetectionRange = 500.0f;
-	
-	/** 공격 범위 */
+
+	// 공격 범위 (cm)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Combat", meta = (ClampMin = "50"))
 	float AttackRange = 100.0f;
 	
@@ -137,30 +137,31 @@ protected:
 	TMap<FName, float> SkillCooldowns;
 	
 public:
-	/** 타겟 설정 (AI Controller가 호출) */
+	// 타겟 설정
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void SetTarget(AActor* NewTarget);
 
-	/** 공격 실행 */
+	// 공격 실행
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void PerformAttack(bool bIsAreaAttack = false, float Radius = 0.0f, AActor* HitTargetActor = nullptr);
 
-	/** 공격 가능 범위인지 */
+	// 공격 범위 내 여부
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsInAttackRange() const;
 
-	/** AI 상태 변경 */
+	// AI 상태 변경
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void SetAIState(EEnemyAIState NewState);
 
-	/** 타겟 가져오기 */
+	// 타겟 반환
 	UFUNCTION(BlueprintPure, Category = "AI")
 	AActor* GetTarget() const { return TargetActor; }
 
+	// 사망 여부
 	UFUNCTION(BlueprintPure, Category = "AI")
 	bool IsDead() const { return bIsDead; }
 
-	/** HealthComponent 반환 (BossHpBarWidget에서 사용) */
+	// 체력 컴포넌트 반환
 	UFUNCTION(BlueprintPure, Category = "Components")
 	class UOHSMHealthComponent* GetHealthComponent() const { return HealthComponent; }
 

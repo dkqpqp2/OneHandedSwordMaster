@@ -49,8 +49,7 @@ void UOHSMQuickSlotComponent::UsePotionSlot(int32 PotionSlotIndex)
 	{
 		return;
 	}
-
-	// 아이템 데이터에서 회복량 조회
+	
 	const FItemData* ItemData = InventoryComp->GetItemData(ItemID);
 	if (!ItemData)
 	{
@@ -62,8 +61,7 @@ void UOHSMQuickSlotComponent::UsePotionSlot(int32 PotionSlotIndex)
 	{
 		return;
 	}
-
-	// HP / MP 회복 적용
+	
 	UOHSMPlayerStatComponent* StatComp = Cast<UOHSMPlayerStatComponent>(Player->GetStatComponent());
 	if (StatComp)
 	{
@@ -78,7 +76,6 @@ void UOHSMQuickSlotComponent::UsePotionSlot(int32 PotionSlotIndex)
 		}
 	}
 
-	// 인벤토리에 아이템이 더 없으면 슬롯 자동 해제
 	if (InventoryComp->GetItemCount(ItemID) <= 0)
 	{
 		ClearSlot(PotionSlotIndex);

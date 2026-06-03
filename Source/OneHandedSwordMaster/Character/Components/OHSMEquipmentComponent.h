@@ -46,6 +46,9 @@ public:
 	bool IsSlotEmpty(EEquipmentSlot Slot) const;
 	
 	const TMap<EEquipmentSlot, FName>& GetAllEquippedItems() const { return EquippedItems; }
+
+	// 저장 데이터로 장비 복원
+	void RestoreFromSave(const TMap<EEquipmentSlot, FName>& SavedEquipment);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Equipment")
 	FOnEquipmentChanged OnEquipmentChanged;

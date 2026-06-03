@@ -14,22 +14,23 @@ UOHSMHealthComponent::UOHSMHealthComponent()
 }
 
 
+// HP 최대치 초기화
 void UOHSMHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CurrentHealth = MaxHealth;
-	
+	CurrentHealth = MaxHealth; // 최대 HP로 시작
 }
 
+// 데미지 수신 및 처리
 void UOHSMHealthComponent::TakeDamage(float Damage, AActor* DamageCauser)
 {
-	if (bIsDead || Damage <= 0.0f)
+	if (bIsDead || Damage <= 0.0f) // 사망 또는 유효하지 않은 데미지
 	{
 		return;
 	}
-	
-	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.0f, MaxHealth);
+
+	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.0f, MaxHealth); // HP 차감
 
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth, Damage, DamageCauser);
 
@@ -60,29 +61,31 @@ void UOHSMHealthComponent::TakeDamage(float Damage, AActor* DamageCauser)
 	}
 }
 
+// HP 회복
 void UOHSMHealthComponent::Heal(float Amount)
 {
 	if (bIsDead || Amount <= 0.0f)
 	{
 		return;
 	}
-	
-	CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.0f, MaxHealth);
-	
+
+	CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.0f, MaxHealth); // HP 증가
+
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth, -Amount, nullptr);
 }
 
+// 사망 처리
 void UOHSMHealthComponent::Die(AActor* Killer)
 {
-	if (bIsDead)
+	if (bIsDead) // 중복 방지
 	{
 		return;
 	}
-	
-	bIsDead = true;
+
+	bIsDead = true; // 사망 플래그
 	CurrentHealth = 0.0f;
-	
-	OnDeath.Broadcast(Killer);
+
+	OnDeath.Broadcast(Killer); // 사망 알림
 }
 
 

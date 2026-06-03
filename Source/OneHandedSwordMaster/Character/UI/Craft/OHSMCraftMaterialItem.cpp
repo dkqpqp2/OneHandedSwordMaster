@@ -14,6 +14,7 @@ static void ApplyCountDisplay(UTextBlock* Label, int32 HaveCount, int32 Required
 {
 	if (!Label) return;
 
+	// 보유수량 / 필요수량 순서로 표시 (현재/목표 형식)
 	const FString CountStr = FString::Printf(TEXT("%d / %d"), HaveCount, RequiredCount);
 	Label->SetText(FText::FromString(CountStr));
 

@@ -3,6 +3,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMQuestComponent.h"
+#include "OneHandedSwordMaster/Character/Player/OHSMPlayerController.h"
 #include "OneHandedSwordMaster/Data/OHSMQuestData.h"
 
 void UOHSMTrackerEntryWidget::InitEntry(UOHSMQuestComponent* InQuestComp, FName InQuestID, bool bCompleted)
@@ -103,5 +104,20 @@ void UOHSMTrackerEntryWidget::InitEntry(UOHSMQuestComponent* InQuestComp, FName 
 
 void UOHSMTrackerEntryWidget::OnBtnAutoMoveClicked()
 {
+	// 브로드캐스트 (HandleAutoMove 가 동기적으로 실행됨)
 	OnAutoMoveRequested.Broadcast(CachedQuestID);
+
+	// 핸들러 실행 후 PC 상태를 읽어 버튼 텍스트 갱신
+	RefreshAutoMoveButton();
+}
+
+void UOHSMTrackerEntryWidget::RefreshAutoMoveButton()
+{
+	if (!TextBtnAutoMove) return;
+
+	AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetOwningPlayer());
+	const bool bMoving = PC && PC->IsAutoMoving();
+
+	TextBtnAutoMove->SetText(FText::FromString(
+		bMoving ? TEXT("자동이동 끄기") : TEXT("자동이동")));
 }

@@ -32,7 +32,7 @@ void UOHSMCraftDetailInfo::NativeConstruct()
 
 	if (IsValid(InventoryComp))
 	{
-		InventoryComp->OnInventoryUpdated.AddDynamic(this, &UOHSMCraftDetailInfo::OnInventoryUpdated);
+		InventoryComp->OnInventoryUpdated.AddUniqueDynamic(this, &UOHSMCraftDetailInfo::OnInventoryUpdated);
 	}
 
 }
@@ -54,6 +54,29 @@ void UOHSMCraftDetailInfo::NativeDestruct()
 
 void UOHSMCraftDetailInfo::SetCraftItemData(const FOHSMCraftItemData& InData, FName InRecipeID)
 {
+	// NativeConstruct 시점에 Pawn이 없어서 바인딩 실패했을 경우 재시도
+	if (!IsValid(InventoryComp))
+	{
+		if (APawn* Pawn = GetOwningPlayerPawn())
+		{
+			InventoryComp = Pawn->FindComponentByClass<UOHSMInventoryComponent>();
+			if (IsValid(InventoryComp))
+			{
+				InventoryComp->OnInventoryUpdated.AddUniqueDynamic(
+					this, &UOHSMCraftDetailInfo::OnInventoryUpdated);
+			}
+		}
+	}
+
+	// CraftComp도 동일하게 지연 바인딩
+	if (!IsValid(CraftComp))
+	{
+		if (APawn* Pawn = GetOwningPlayerPawn())
+		{
+			CraftComp = Pawn->FindComponentByClass<UOHSMCraftComponent>();
+		}
+	}
+
 	// Super 호출 전에 먼저 초기화 (WrapBox 누적 방지)
 	ResetInfo();
 
@@ -89,10 +112,10 @@ void UOHSMCraftDetailInfo::OnClickedCraft()
 
 void UOHSMCraftDetailInfo::OnInventoryUpdated(int32 SlotIndex)
 {
-	// 재료 보유 수량 표시 갱신
-	RefreshMaterialCounts();
+	// 베이스: 재료 보유 수량 갱신
+	Super::OnInventoryUpdated(SlotIndex);
 
-	// 제작 버튼 활성화 여부 갱신
+	// 파생 추가 처리: 제작 버튼 활성화 여부 갱신
 	UpdateCraftButton();
 }
 

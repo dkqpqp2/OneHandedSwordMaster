@@ -18,9 +18,7 @@ class ONEHANDEDSWORDMASTER_API UOHSMQuickSlotEntryWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/**
-	 * @param InSkillComp  스킬 슬롯(인덱스 4~7)인 경우 전달, 포션 슬롯이면 nullptr
-	 */
+	// 슬롯 초기화 (스킬 슬롯이면 InSkillComp 전달)
 	void InitializeEntry(
 		int32 InSlotIndex,
 		const FString& InKeyLabel,
@@ -45,15 +43,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UImage> HoverHighlight;
 
-	/** 스킬 슬롯 전용 쿨다운 오버레이 — 없어도 컴파일 오류 없음 */
+	// 쿨다운 원형 오버레이 (스킬 슬롯 전용)
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UImage> Img_CooldownOverlay;
 
-	/** 쿨다운 남은 시간 텍스트 — 없어도 컴파일 오류 없음 */
+	// 쿨다운 남은 시간 텍스트
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UTextBlock> TextCooldown;
 
-	/** BP 디폴트에서 M_RadialCooldown 지정 */
+	// 쿨다운 머티리얼 (BP 지정)
 	UPROPERTY(EditAnywhere, Category = "Cooldown")
 	TObjectPtr<class UMaterialInterface> CooldownMaterial;
 
@@ -61,13 +59,13 @@ public:
 	int32 GetSlotIndex() const { return SlotIndex; }
 	class UOHSMQuickSlotComponent* GetQuickSlotComponent() const { return QuickSlotComponent; }
 
-	/** 스킬 사용 시 OHSMQuickSlotWidget 에서 호출 — 쿨다운 오버레이 시작 */
+	// 쿨다운 오버레이 시작
 	void StartCooldown(float CooldownDuration);
 
-	/** 슬롯에 새 스킬이 등록될 때 진행 중인 쿨다운을 즉시 초기화 */
+	// 쿨다운 즉시 초기화
 	void CancelCooldown();
 
-	/** 현재 쿨다운 진행 중이면 true */
+	// 쿨다운 중 여부
 	bool IsOnCooldown() const { return CooldownTotal > 0.f && CooldownElapsed < CooldownTotal; }
 
 protected:
@@ -95,11 +93,11 @@ private:
 	UPROPERTY()
 	TObjectPtr<class UOHSMInventoryComponent> InventoryComponent;
 
-	/** 스킬 슬롯(4~7)일 때 스킬 아이콘/데이터 조회에 사용 */
+	// 스킬 컴포넌트 참조 (스킬 슬롯용)
 	UPROPERTY()
 	TObjectPtr<class UOHSMSkillComponent> SkillComponent;
 
-	/** 현재 슬롯이 스킬 슬롯인지 (SlotIndex >= PotionSlotCount) */
+	// 스킬 슬롯 여부 확인
 	bool IsSkillSlot() const;
 
 	// ─── 쿨다운 ─────────────────────────────────────────────────

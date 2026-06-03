@@ -43,6 +43,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Craft")
 	TObjectPtr<UDataTable> CraftDataTable;
 
+	// GC로부터 Root 항목 보호 — SetListItems 이후에도 참조 유지
+	UPROPERTY()
+	TArray<TObjectPtr<class UOHSMCraftTreeItemEntry>> CachedRootItems;
+
 private:
 	UFUNCTION()
 	void OnBtnCloseClicked();

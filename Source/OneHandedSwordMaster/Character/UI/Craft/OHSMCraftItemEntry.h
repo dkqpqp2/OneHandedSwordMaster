@@ -29,13 +29,15 @@ public:
 	TObjectPtr<UOHSMTreeItemEntry> RootItem;
 
 	bool HasChildren() const;
-	TArray<UOHSMTreeItemEntry*> GetAllChildren() const;
+	const TArray<TObjectPtr<UOHSMTreeItemEntry>>& GetAllChildren() const;
 	void AddChild(UOHSMTreeItemEntry* InChild);
 	void RemoveChild(UOHSMTreeItemEntry* InChild);
 	void ClearChildren();
 
 private:
-	TArray<UOHSMTreeItemEntry*> TreeChildren;
+	// UPROPERTY 없으면 GC가 수거해버림 → 반드시 필요
+	UPROPERTY()
+	TArray<TObjectPtr<UOHSMTreeItemEntry>> TreeChildren;
 };
 
 /** 제작 레시피 1행을 담는 데이터 오브젝트 */

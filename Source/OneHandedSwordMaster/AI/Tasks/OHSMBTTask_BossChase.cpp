@@ -4,6 +4,7 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "OneHandedSwordMaster/Character/Enemy/Boss/OHSMBossBase.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
 
@@ -15,6 +16,8 @@ UOHSMBTTask_BossChase::UOHSMBTTask_BossChase()
 	TargetActorKey.AddObjectFilter(this,
 		GET_MEMBER_NAME_CHECKED(UOHSMBTTask_BossChase, TargetActorKey),
 		AActor::StaticClass());
+
+	TargetActorKey.SelectedKeyName = FName(TEXT("TargetActor"));
 }
 
 EBTNodeResult::Type UOHSMBTTask_BossChase::ExecuteTask(
@@ -24,23 +27,18 @@ EBTNodeResult::Type UOHSMBTTask_BossChase::ExecuteTask(
 
 	AAIController* AIC  = OwnerComp.GetAIOwner();
 	AOHSMBossBase* Boss = AIC ? Cast<AOHSMBossBase>(AIC->GetPawn()) : nullptr;
-	if (!Boss)
-	{
-		return EBTNodeResult::Failed;
-	}
+	if (!Boss) return EBTNodeResult::Failed;
 
 	AActor* Target = Cast<AActor>(
 		OwnerComp.GetBlackboardComponent()->GetValueAsObject(
 			TargetActorKey.SelectedKeyName));
+	if (!Target) return EBTNodeResult::Failed;
 
-	if (!Target)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	// 이동 시작
-	AIC->MoveToActor(Target, AcceptanceRadius);
+	// TraceTarget 과 동일한 방식으로 이동 시작
+	UAIBlueprintHelperLibrary::SimpleMoveToActor(AIC, Target);
 	Boss->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Run));
+
+	UE_LOG(LogTemp, Log, TEXT("[BossChase] 추적 시작 → %s"), *Target->GetName());
 
 	return EBTNodeResult::InProgress;
 }
@@ -49,10 +47,7 @@ void UOHSMBTTask_BossChase::TickTask(
 	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	CheckAccum += DeltaSeconds;
-	if (CheckAccum < CheckInterval)
-	{
-		return; // 아직 체크 주기 아님
-	}
+	if (CheckAccum < CheckInterval) return;
 	CheckAccum = 0.f;
 
 	AAIController* AIC  = OwnerComp.GetAIOwner();
@@ -76,20 +71,8 @@ void UOHSMBTTask_BossChase::TickTask(
 		return;
 	}
 
-	// ── 핵심 판단 ────────────────────────────────────────────────────────
-	// 현재 거리·페이즈·쿨다운 조건을 모두 만족하는 패턴이 있으면
-	// 즉시 추적을 중단하고 Succeeded → BT가 BossAttack 을 다시 시도.
-	if (Boss->HasAnyAvailablePattern())
-	{
-		AIC->StopMovement();
-		Boss->ChangeAIAnimType(static_cast<uint8>(EEnemyAIState::Idle));
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-		return;
-	}
-
-	// 아직 사용 가능한 패턴 없음 → 이동 재요청
-	// (플레이어가 도망가거나 NavMesh 재계산이 필요한 경우 경로 갱신)
-	AIC->MoveToActor(Target, AcceptanceRadius);
+	// 플레이어가 움직이면 경로 재요청 (SimpleMoveToActor 는 재요청 비용이 낮음)
+	UAIBlueprintHelperLibrary::SimpleMoveToActor(AIC, Target);
 }
 
 EBTNodeResult::Type UOHSMBTTask_BossChase::AbortTask(

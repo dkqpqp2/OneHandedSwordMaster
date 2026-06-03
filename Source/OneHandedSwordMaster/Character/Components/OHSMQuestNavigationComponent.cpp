@@ -112,8 +112,6 @@ void UOHSMQuestNavigationComponent::TickUpdate()
 	}
 }
 
-// ─── 목표 탐색 ───────────────────────────────────────────────────────────────
-
 bool UOHSMQuestNavigationComponent::FindQuestTargetLocation(FName QuestID, FVector& OutLocation) const
 {
 	if (!QuestComponent || QuestID.IsNone())
@@ -126,8 +124,7 @@ bool UOHSMQuestNavigationComponent::FindQuestTargetLocation(FName QuestID, FVect
 	{
 		return false;
 	}
-
-	// ── Completable 상태: 모든 목표 달성 → 퀘스트를 가진 NPC에게 귀환 ──────
+	
 	if (QuestComponent->GetQuestState(QuestID) == EQuestState::Completable)
 	{
 		for (TActorIterator<AOHSMQuestNPC> It(GetWorld()); It; ++It)
@@ -140,8 +137,7 @@ bool UOHSMQuestNavigationComponent::FindQuestTargetLocation(FName QuestID, FVect
 		}
 		return false;
 	}
-
-	// ── 진행 중인 목표 탐색 ───────────────────────────────────────────────────
+	
 	for (int32 i = 0; i < Data->Objectives.Num(); ++i)
 	{
 		const int32 Current = QuestComponent->GetObjectiveProgress(QuestID, i);
@@ -200,8 +196,6 @@ bool UOHSMQuestNavigationComponent::FindCurrentTarget(FVector& OutLocation) cons
 	return FindQuestTargetLocation(TrackedIDs[0], OutLocation);
 }
 
-// ─── 점 경로 빌드 ────────────────────────────────────────────────────────────
-
 void UOHSMQuestNavigationComponent::RebuildDots(const FVector& TargetLocation)
 {
 	if (!IsValid(NavDotActor))
@@ -224,8 +218,18 @@ void UOHSMQuestNavigationComponent::RebuildDots(const FVector& TargetLocation)
 		return;
 	}
 
+	FVector NavTarget = TargetLocation;
+	if (UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation ProjectedTarget;
+		if (NavSys->ProjectPointToNavigation(TargetLocation, ProjectedTarget, FVector(500.f, 500.f, 500.f)))
+		{
+			NavTarget = ProjectedTarget.Location;
+		}
+	}
+
 	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(
-		GetWorld(), StartLoc, TargetLocation);
+		GetWorld(), StartLoc, NavTarget);
 
 	if (!NavPath || !NavPath->IsValid() || NavPath->PathPoints.Num() < 2)
 	{
@@ -238,6 +242,10 @@ void UOHSMQuestNavigationComponent::RebuildDots(const FVector& TargetLocation)
 	const TArray<FVector>& PathPts = NavPath->PathPoints;
 	float Accumulated = DotSpacing;
 
+	FCollisionQueryParams TraceParams;
+	TraceParams.AddIgnoredActor(Owner);
+	TraceParams.AddIgnoredActor(NavDotActor);
+
 	for (int32 i = 0; i < PathPts.Num() - 1; ++i)
 	{
 		const FVector SegStart = PathPts[i];
@@ -248,7 +256,20 @@ void UOHSMQuestNavigationComponent::RebuildDots(const FVector& TargetLocation)
 		while (Accumulated < SegLen)
 		{
 			FVector DotPos = SegStart + SegDir * Accumulated;
-			DotPos.Z += 5.f;
+			
+			FHitResult FloorHit;
+			const FVector TraceStart = FVector(DotPos.X, DotPos.Y, DotPos.Z + 50.f);
+			const FVector TraceEnd   = FVector(DotPos.X, DotPos.Y, DotPos.Z - 200.f);
+
+			if (GetWorld()->LineTraceSingleByChannel(FloorHit, TraceStart, TraceEnd,
+				ECC_WorldStatic, TraceParams))
+			{
+				DotPos.Z = FloorHit.ImpactPoint.Z + 5.f;
+			}
+			else
+			{
+				DotPos.Z += 5.f; 
+			}
 
 			FRotator DotRot(0.f, SegDir.Rotation().Yaw, 0.f);
 

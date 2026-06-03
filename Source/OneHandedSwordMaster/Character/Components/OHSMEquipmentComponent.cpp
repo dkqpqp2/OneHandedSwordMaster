@@ -14,6 +14,29 @@ UOHSMEquipmentComponent::UOHSMEquipmentComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+// 저장 데이터로 장비 복원
+void UOHSMEquipmentComponent::RestoreFromSave(const TMap<EEquipmentSlot, FName>& SavedEquipment)
+{
+	// 기존 장비 초기화 (스탯 제거 없이 직접 비움 — 이전 스탯이 없으므로 안전)
+	EquippedItems.Empty();
+
+	for (const auto& Pair : SavedEquipment)
+	{
+		const EEquipmentSlot Slot = Pair.Key;
+		const FName          ItemID = Pair.Value;
+		if (ItemID.IsNone()) continue;
+
+		const FItemData* Data = FindItemData(ItemID);
+		if (!Data) continue;
+
+		EquippedItems.Add(Slot, ItemID);
+		ModifyStatBonuses(*Data, 1.0f);   // 스탯 보너스 재적용
+		UpdateVisualMesh(Slot, Data);     // 비주얼 메시 재적용
+
+		OnEquipmentChanged.Broadcast(Slot);
+	}
+}
+
 void UOHSMEquipmentComponent::InitializeDefaultEquipment()
 {
 	for (const FName& ItemID : DefaultEquippedItemIDs)
@@ -25,6 +48,7 @@ void UOHSMEquipmentComponent::InitializeDefaultEquipment()
 	}
 }
 
+// 인벤토리 슬롯 아이템 장착
 bool UOHSMEquipmentComponent::EquipItemFromSlot(int32 InvSlotIndex)
 {
 	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwner());
@@ -79,6 +103,7 @@ bool UOHSMEquipmentComponent::EquipItemFromSlot(int32 InvSlotIndex)
 	return true;
 }
 
+// 아이템 ID로 장착
 bool UOHSMEquipmentComponent::EquipItem(FName ItemID)
 {
 	if (ItemID.IsNone())
@@ -125,6 +150,7 @@ bool UOHSMEquipmentComponent::EquipItem(FName ItemID)
 	return true;
 }
 
+// 장비 해제
 void UOHSMEquipmentComponent::UnequipItem(EEquipmentSlot Slot)
 {
 	FName* EquippedID = EquippedItems.Find(Slot);
@@ -185,6 +211,7 @@ const FItemData* UOHSMEquipmentComponent::FindItemData(FName ItemID) const
 	return Inventory->GetItemData(ItemID);
 }
 
+// 스탯 보너스 적용/제거 (Multiplier: 1=추가, -1=제거)
 void UOHSMEquipmentComponent::ModifyStatBonuses(const FItemData& Data, float Multiplier)
 {
 	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwner());
@@ -216,6 +243,7 @@ void UOHSMEquipmentComponent::ModifyStatBonuses(const FItemData& Data, float Mul
 	}
 }
 
+// 장비 비주얼 메시 갱신
 void UOHSMEquipmentComponent::UpdateVisualMesh(EEquipmentSlot Slot, const FItemData* Data)
 {
 	AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(GetOwner());

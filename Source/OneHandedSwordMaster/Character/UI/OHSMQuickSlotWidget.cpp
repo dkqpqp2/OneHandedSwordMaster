@@ -15,6 +15,18 @@ void UOHSMQuickSlotWidget::InitializeSlots(
 	UOHSMInventoryComponent* InInventoryComp,
 	UOHSMSkillComponent*     InSkillComp)
 {
+	// ── 이전 구독 해제 ─────────────────────────────────────────────────────────
+	// 맵 전환이나 재초기화 시 기존 컴포넌트의 델리게이트에서 이 위젯을 제거.
+	// AddUniqueDynamic 과 함께 사용해 누적 바인딩을 완전히 차단한다.
+	if (IsValid(InventoryComponent))
+	{
+		InventoryComponent->OnInventoryUpdated.RemoveAll(this);
+	}
+	if (IsValid(SkillComponent))
+	{
+		SkillComponent->OnSkillActivated.RemoveAll(this);
+	}
+
 	QuickSlotComponent = InQuickSlotComp;
 	SkillComponent     = InSkillComp;
 
@@ -35,7 +47,9 @@ void UOHSMQuickSlotWidget::InitializeSlots(
 	// 포션 슬롯만 인벤토리 변경 시 갱신 (스킬 슬롯은 인벤토리와 무관)
 	if (InInventoryComp && SlotGroupType == EQuickSlotGroupType::Potion)
 	{
-		InInventoryComp->OnInventoryUpdated.AddDynamic(this, &UOHSMQuickSlotWidget::OnInventoryChanged);
+		InventoryComponent = InInventoryComp; // 해제용 캐시 갱신
+		// AddUniqueDynamic: 동일 (오브젝트, 함수) 쌍이 이미 있으면 추가하지 않음
+		InInventoryComp->OnInventoryUpdated.AddUniqueDynamic(this, &UOHSMQuickSlotWidget::OnInventoryChanged);
 	}
 
 	// 스킬 슬롯이면 OnSkillActivated 델리게이트 구독 → 쿨다운 전달
@@ -47,7 +61,13 @@ void UOHSMQuickSlotWidget::InitializeSlots(
 
 void UOHSMQuickSlotWidget::NativeDestruct()
 {
-	if (SkillComponent)
+	// 인벤토리·스킬 델리게이트 구독 모두 해제 (위젯 소멸 시 스테일 참조 방지)
+	if (IsValid(InventoryComponent))
+	{
+		InventoryComponent->OnInventoryUpdated.RemoveAll(this);
+	}
+
+	if (IsValid(SkillComponent))
 	{
 		SkillComponent->OnSkillActivated.RemoveAll(this);
 	}
@@ -77,8 +97,7 @@ void UOHSMQuickSlotWidget::OnSkillActivated(FName SkillID, float Cooldown)
 	{
 		return;
 	}
-
-	// 각 슬롯 엔트리를 확인해 SkillID가 등록된 슬롯에만 쿨다운 시작
+	
 	for (UOHSMQuickSlotEntryWidget* Entry : GetAllEntries())
 	{
 		if (!Entry)

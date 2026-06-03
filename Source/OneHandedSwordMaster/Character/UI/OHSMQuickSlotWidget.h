@@ -13,21 +13,14 @@ enum class EQuickSlotGroupType : uint8
 	Skill	UMETA(DisplayName = "스킬 슬롯 (Q/E/R/F)")
 };
 
-/**
- * 퀵슬롯 4칸 컨테이너
- * - BP에서 SlotGroupType을 Potion 또는 Skill로 지정
- * - Potion: 컴포넌트 인덱스 0~3 사용, 키 라벨 1/2/3/4
- * - Skill:  컴포넌트 인덱스 4~7 사용, 키 라벨 Q/E/R/F
- */
+// 퀵슬롯 4칸 컨테이너 (Potion/Skill 그룹 선택)
 UCLASS()
 class ONEHANDEDSWORDMASTER_API UOHSMQuickSlotWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	/**
-	 * @param InSkillComp  SlotGroupType == Skill 일 때 전달 (Potion 이면 nullptr)
-	 */
+	// 슬롯 초기화 (스킬 그룹이면 InSkillComp 전달)
 	void InitializeSlots(
 		class UOHSMQuickSlotComponent* InQuickSlotComp,
 		class UOHSMInventoryComponent* InInventoryComp,
@@ -73,6 +66,10 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<class UOHSMQuickSlotComponent> QuickSlotComponent;
+
+	/** OnInventoryUpdated 구독 해제용 캐시 — RemoveAll 에 사용 */
+	UPROPERTY()
+	TObjectPtr<class UOHSMInventoryComponent> InventoryComponent;
 
 	static const TArray<FString> PotionKeyLabels;
 	static const TArray<FString> SkillKeyLabels;

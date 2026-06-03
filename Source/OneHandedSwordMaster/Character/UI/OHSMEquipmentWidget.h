@@ -62,6 +62,9 @@ protected:
 	TObjectPtr<class UButton> Btn_Close;
 
 public:
+	// 현재 연결된 장비 컴포넌트 (null이면 미초기화)
+	class UOHSMEquipmentComponent* GetEquipmentComponent() const { return EquipmentComp; }
+
 	void InitializeEquipment(class UOHSMEquipmentComponent* EquipComp,
 		class UOHSMInventoryComponent* InvComp,
 		class UOHSMPlayerStatComponent* InStatComp);
@@ -81,6 +84,9 @@ public:
 	void ToggleEquipment();
 
 private:
+	UPROPERTY()
+	TObjectPtr<class UOHSMEquipmentComponent> EquipmentComp;
+
 	UPROPERTY()
 	TObjectPtr<class UOHSMPlayerStatComponent> StatComponent;
 

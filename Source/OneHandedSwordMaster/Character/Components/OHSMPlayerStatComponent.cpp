@@ -4,7 +4,7 @@
 #include "OHSMPlayerStatComponent.h"
 #include "OneHandedSwordMaster/Data/OHSMPlayerStatData.h"
 
-// Sets default values for this component's properties
+// 스탯 컴포넌트 초기화
 UOHSMPlayerStatComponent::UOHSMPlayerStatComponent()
 {
 	
@@ -21,16 +21,17 @@ void UOHSMPlayerStatComponent::InitializeComponent()
 	InitializeStats();
 }
 
+// 시작 시 HP/마나 최대치 설정
 void UOHSMPlayerStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	ApplyLevelStats();
-	
+	ApplyLevelStats(); // 레벨 스탯 적용
+
 	float MaxHp = GetMaxHp();
-	SetHp(MaxHp);
-	
+	SetHp(MaxHp); // HP 최대치로 초기화
+
 	float MaxMana = GetMaxMana();
-	CurrentMana = MaxMana;
+	CurrentMana = MaxMana; // 마나 최대치로 초기화
 	OnManaChanged.Broadcast(CurrentMana, MaxMana);
 }
 
@@ -40,9 +41,10 @@ float UOHSMPlayerStatComponent::GetMaxHp() const
 	return GetStat(EPlayerStatType::MaxHealth);
 }
 
+// 데미지 적용 후 실제 피해량 반환
 float UOHSMPlayerStatComponent::ApplyDamage(float InDamage, AActor* Attacker)
 {
-	if (CurrentHp <= 0.0f)
+	if (CurrentHp <= 0.0f) // 이미 사망 상태
 	{
 		return 0.0f;
 	}
@@ -56,7 +58,7 @@ float UOHSMPlayerStatComponent::ApplyDamage(float InDamage, AActor* Attacker)
 
 	if (CurrentHp <= KINDA_SMALL_NUMBER)
 	{
-		OnHpZero.Broadcast();
+		OnHpZero.Broadcast(); // HP 0 알림
 	}
 
 	return ActualDamage;
@@ -113,6 +115,27 @@ void UOHSMPlayerStatComponent::SetMana(float NewMana)
 	OnManaChanged.Broadcast(CurrentMana, MaxMana);
 }
 
+void UOHSMPlayerStatComponent::RestoreFromSave(int32 InLevel, int32 InExp, float InHp, float InMana)
+{
+	CurrentLevel = FMath::Max(1, InLevel);
+	CurrentExp   = FMath::Max(0, InExp);
+
+	// 해당 레벨의 DataTable 스탯 재적용
+	ApplyLevelStats();
+
+	const float MaxHp   = GetMaxHp();
+	const float MaxMana = GetMaxMana();
+
+	// HP / 마나 복원 (-1 이면 최대치)
+	SetHp  (InHp   >= 0.f ? FMath::Min(InHp,   MaxHp)   : MaxHp);
+	SetMana(InMana >= 0.f ? FMath::Min(InMana, MaxMana) : MaxMana);
+
+	// UI 갱신
+	OnExpChanged.Broadcast(CurrentExp, RequiredExp);
+	OnLevelUp.Broadcast(CurrentLevel, CurrentLevel);
+}
+
+// 경험치 추가 및 레벨업 체크
 void UOHSMPlayerStatComponent::AddExperience(int32 Amount)
 {
 	// 만렙이면 경험치 무시
@@ -122,36 +145,37 @@ void UOHSMPlayerStatComponent::AddExperience(int32 Amount)
 		return;
 	}
 
-	CurrentExp += Amount;
+	CurrentExp += Amount; // 경험치 누적
 
-	OnExpChanged.Broadcast(CurrentExp, RequiredExp);
+	OnExpChanged.Broadcast(CurrentExp, RequiredExp); // UI 갱신
 
 	// 레벨업 체크 (만렙 초과 방지)
 	while (CurrentExp >= RequiredExp && CurrentLevel < MaxLevel)
 	{
-		LevelUp();
+		LevelUp(); // 레벨업 처리
 	}
 }
 
+// 레벨 1 상승 처리
 void UOHSMPlayerStatComponent::LevelUp()
 {
 	int32 OldLevel = CurrentLevel;
-	CurrentLevel++;
-    
-	CurrentExp -= RequiredExp;
-	
-	ApplyLevelStats();
-    
+	CurrentLevel++; // 레벨 증가
+
+	CurrentExp -= RequiredExp; // 초과 경험치 유지
+
+	ApplyLevelStats(); // 새 레벨 스탯 적용
+
 	float NewMaxHp = GetMaxHp();
 	float NewMaxMana = GetMaxMana();
-	
-	CurrentHp = NewMaxHp; 
-	CurrentMana = NewMaxMana;
-	
+
+	CurrentHp = NewMaxHp; // HP 최대치 회복
+	CurrentMana = NewMaxMana; // 마나 최대치 회복
+
 	OnHpChanged.Broadcast(CurrentHp, NewMaxHp);
 	OnManaChanged.Broadcast(CurrentMana, NewMaxMana);
-    
-	OnLevelUp.Broadcast(CurrentLevel, OldLevel);
+
+	OnLevelUp.Broadcast(CurrentLevel, OldLevel); // 레벨업 알림
 	OnExpChanged.Broadcast(CurrentExp, RequiredExp);
 }
 
@@ -189,17 +213,16 @@ void UOHSMPlayerStatComponent::AddEquipmentBonus(EPlayerStatType StatType, float
 	{
 		Stat->EquipmentBonus += Amount;
 
-		// HP/Mana 최댓값이 바뀌면 UI 갱신
 		if (StatType == EPlayerStatType::MaxHealth)
 		{
+			CurrentHp = FMath::Min(CurrentHp, GetMaxHp());
 			OnHpChanged.Broadcast(CurrentHp, GetMaxHp());
 		}
 		else if (StatType == EPlayerStatType::MaxMana)
 		{
 			OnManaChanged.Broadcast(CurrentMana, GetMaxMana());
 		}
-
-		// 장비창 갱신
+		
 		OnStatChanged.Broadcast();
 	}
 }

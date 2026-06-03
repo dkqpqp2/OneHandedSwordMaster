@@ -6,7 +6,7 @@
 #include "AIController.h"
 #include "Kismet/GamePlayStatics.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
-#include "DrawDebugHelpers.h"
+#include "Engine/OverlapResult.h"
 
 UBTService_FindPlayer::UBTService_FindPlayer()
 {
@@ -34,34 +34,33 @@ void UBTService_FindPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	AILocation.Z -= Enemy->GetHalfHeight();
 	
 	FCollisionQueryParams param(NAME_None, false, Enemy);
+
+	TArray<FOverlapResult> Overlaps;
+	//
+	GetWorld()->OverlapMultiByChannel(
+		Overlaps, AILocation, FQuat::Identity,
+		ECC_GameTraceChannel3,
+		FCollisionShape::MakeSphere(Enemy->DetectionRange),
+		param);
+
+	AActor* FoundPlayer = nullptr;
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		AActor* HitActor = Overlap.GetActor();
+		//
+		if (IsValid(HitActor) && HitActor->ActorHasTag(TEXT("Player")))
+		{
+			FoundPlayer = HitActor;
+			break;
+		}
+	}
 	
-	FHitResult result;
-	
-	bool IsCollision = GetWorld()->SweepSingleByChannel(result, AILocation, AILocation, 
-		FQuat::Identity, ECC_GameTraceChannel3, FCollisionShape::MakeSphere(Enemy->DetectionRange), param);
-	
-#if ENABLE_DRAW_DEBUG
-	
-	FColor DrawColor = IsCollision ? FColor::Red : FColor::Green;
-	
-	DrawDebugSphere(GetWorld(), AILocation, Enemy->DetectionRange, 20, DrawColor, false, 0.35f);
-	
-#endif
-	
-	// Passive 타입은 피격 시에만 타겟 설정 — 이 서비스에서 덮어쓰지 않음
+	//
 	if (Enemy->Personality == EEnemyPersonality::Passive)
 	{
 		return;
 	}
 
-	if (IsCollision)
-	{
-		// result.GetActor() : 충돌된 액터를 가져온다.
-		Controller->GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), result.GetActor());
-	}
-	else
-	{
-		Controller->GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), nullptr);
-	}
+	Controller->GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), FoundPlayer);
 	
 }

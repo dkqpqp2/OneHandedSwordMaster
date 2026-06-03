@@ -20,6 +20,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 public:
 	/** IOHSMInteractableInterface — 플레이어가 E 키를 눌렀을 때 */
@@ -27,23 +28,27 @@ public:
 
 	// ─── 공통 설정 ────────────────────────────────────────────────
 protected:
-	/** NPC 이름 (머리 위 위젯에 표시) */
+	// NPC 이름
 	UPROPERTY(EditAnywhere, Category = "NPC")
 	FText NPCName = FText::FromString(TEXT("NPC"));
 
-	/** 상호작용 가능 범위 (반경) */
+	// 상호작용 범위
 	UPROPERTY(EditAnywhere, Category = "NPC|Interaction")
 	float InteractionRadius = 200.f;
 
-	/** NPC 대화 메시지 */
+	// 이름 표시 범위
+	UPROPERTY(EditAnywhere, Category = "NPC|UI")
+	float NameVisibilityRadius = 600.f;
+
+	// 대화 메시지
 	UPROPERTY(EditAnywhere, Category = "NPC|Dialogue")
 	FText DialogueMessage;
 
-	/** 확인 버튼 텍스트 */
+	// 확인 버튼 텍스트
 	UPROPERTY(EditAnywhere, Category = "NPC|Dialogue")
 	FText ConfirmButtonText = FText::FromString(TEXT("확인"));
 
-	/** 취소 버튼 텍스트 */
+	// 취소 버튼 텍스트
 	UPROPERTY(EditAnywhere, Category = "NPC|Dialogue")
 	FText CancelButtonText = FText::FromString(TEXT("취소"));
 
@@ -59,6 +64,10 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "NPC|Interaction")
 	TObjectPtr<USphereComponent> InteractionRange;
+
+	/** 이름 위젯 표시 범위 구체 (NameVisibilityRadius) */
+	UPROPERTY(VisibleAnywhere, Category = "NPC|UI")
+	TObjectPtr<USphereComponent> VisibilityRange;
 
 	/** 머리 위 정보 위젯 컴포넌트 (이름 + 퀘스트 인디케이터) */
 	UPROPERTY(VisibleAnywhere, Category = "NPC|UI")
@@ -93,6 +102,16 @@ private:
 
 	UFUNCTION()
 	void OnRangeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	// 이름 위젯 표시 범위 오버랩
+	UFUNCTION()
+	void OnVisibilityBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+		bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnVisibilityEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	// 대화창 버튼 콜백

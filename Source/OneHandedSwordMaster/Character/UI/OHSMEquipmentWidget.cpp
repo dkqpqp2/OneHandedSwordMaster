@@ -26,6 +26,7 @@ void UOHSMEquipmentWidget::InitializeEquipment(UOHSMEquipmentComponent* EquipCom
 	UOHSMInventoryComponent* InvComp,
 	UOHSMPlayerStatComponent* InStatComp)
 {
+	EquipmentComp = EquipComp;
 	StatComponent = InStatComp;
 
 	auto Init = [&](UOHSMEquipmentSlotWidget* EquipSlot, EEquipmentSlot Type)

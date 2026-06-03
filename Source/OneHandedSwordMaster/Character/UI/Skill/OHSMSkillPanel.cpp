@@ -228,30 +228,33 @@ void UOHSMSkillPanel::DrawConnectionLine(FVector2D From, FVector2D To)
 	{
 		return;
 	}
-
-	// From → To 벡터
-	const FVector2D Delta    = To - From;
-	const float     Length   = Delta.Size();
-	const float     AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(Delta.Y, Delta.X));
+	
+	const FVector2D Delta = To - From;
+	const float Length = Delta.Size();
+	//
+	const float AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(Delta.Y, Delta.X));
+	
 	const FVector2D MidPoint = (From + To) * 0.5f;
-
+	
 	UImage* Line = NewObject<UImage>(this);
 	Line->SetColorAndOpacity(LineColor);
 
 	UCanvasPanelSlot* LineSlot = Cast<UCanvasPanelSlot>(Canvas_SkillTree->AddChild(Line));
 	if (LineSlot)
 	{
+		//
 		LineSlot->SetPosition(MidPoint - FVector2D(Length * 0.5f, LineThickness * 0.5f));
 		LineSlot->SetSize(FVector2D(Length, LineThickness));
 		LineSlot->SetAutoSize(false);
 	}
 
 	FWidgetTransform Transform;
-	Transform.Angle       = AngleDeg;
+	Transform.Angle = AngleDeg;
 	Transform.Translation = FVector2D::ZeroVector;
-	Transform.Scale       = FVector2D::UnitVector;
-	Transform.Shear       = FVector2D::ZeroVector;
+	Transform.Scale = FVector2D::UnitVector;
+	Transform.Shear = FVector2D::ZeroVector;
 	Line->SetRenderTransform(Transform);
+	//
 	Line->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 }
 
@@ -264,7 +267,7 @@ FVector2D UOHSMSkillPanel::GetNodeCenterPosition(const FOHSMSkillData* Data) con
 
 	return FVector2D(
 		Data->TreeColumn * NodeSpacingX + NodeSize * 0.5f,
-		Data->TreeTier   * NodeSpacingY + NodeSize * 0.5f
+		Data->TreeTier * NodeSpacingY + NodeSize * 0.5f
 	);
 }
 

@@ -13,14 +13,16 @@ void UOHSMQuestComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 스킬 습득 이벤트 구독 — 스킬 습득 목표 자동 처리
 	if (UOHSMSkillComponent* SkillComp = GetOwner()->FindComponentByClass<UOHSMSkillComponent>())
 	{
 		SkillComp->OnSkillLearned.AddUObject(this, &UOHSMQuestComponent::NotifySkillLearned);
 	}
+	
+	if (UOHSMInventoryComponent* InvComp = GetOwner()->FindComponentByClass<UOHSMInventoryComponent>())
+	{
+		InvComp->OnItemAdded.AddDynamic(this, &UOHSMQuestComponent::NotifyItemCollected);
+	}
 }
-
-// ─── 수락 ────────────────────────────────────────────────────────────────────
 
 bool UOHSMQuestComponent::CanAcceptQuest(FName QuestID) const
 {
@@ -44,6 +46,7 @@ bool UOHSMQuestComponent::CanAcceptQuest(FName QuestID) const
 	return true;
 }
 
+// 퀘스트 수락 처리
 bool UOHSMQuestComponent::AcceptQuest(FName QuestID)
 {
 	if (!CanAcceptQuest(QuestID)) return false;
@@ -52,19 +55,41 @@ bool UOHSMQuestComponent::AcceptQuest(FName QuestID)
 	if (!Data) return false;
 
 	FQuestProgress Progress;
-	Progress.Counts.SetNum(Data->Objectives.Num(), false);
+	Progress.Counts.SetNum(Data->Objectives.Num(), false); // 목표 개수만큼 초기화
 	for (int32& C : Progress.Counts) C = 0;
+
+	// Collect 목표: 수락 시점에 이미 인벤토리에 있는 아이템 수량 반영
+	bool bPreFilled = false;
+	if (UOHSMInventoryComponent* InvComp = GetOwner()->FindComponentByClass<UOHSMInventoryComponent>())
+	{
+		for (int32 i = 0; i < Data->Objectives.Num(); ++i)
+		{
+			const FQuestObjectiveData& Obj = Data->Objectives[i];
+			if (Obj.ObjectiveType != EQuestObjectiveType::Collect) continue;
+
+			const int32 CurrentCount = InvComp->GetItemCount(Obj.TargetID);
+			if (CurrentCount > 0)
+			{
+				Progress.Counts[i] = FMath::Min(CurrentCount, Obj.RequiredCount);
+				bPreFilled = true;
+			}
+		}
+	}
 
 	ActiveQuestProgress.Add(QuestID, Progress);
 	OnQuestAccepted.Broadcast(QuestID);
+
+	// 기존 아이템이 반영된 경우 UI 갱신
+	if (bPreFilled)
+	{
+		OnQuestProgressUpdated.Broadcast(QuestID);
+	}
 
 	// 수락과 동시에 자동 추적 (TrackedQuestIDs 최대 3개)
 	TrackQuest(QuestID);
 
 	return true;
 }
-
-// ─── 완료 ────────────────────────────────────────────────────────────────────
 
 bool UOHSMQuestComponent::CanCompleteQuest(FName QuestID) const
 {
@@ -83,6 +108,7 @@ bool UOHSMQuestComponent::CanCompleteQuest(FName QuestID) const
 	return true;
 }
 
+// 퀘스트 완료 처리
 void UOHSMQuestComponent::CompleteQuest(FName QuestID)
 {
 	if (!CanCompleteQuest(QuestID)) return;
@@ -90,17 +116,15 @@ void UOHSMQuestComponent::CompleteQuest(FName QuestID)
 	const FOHSMQuestData* Data = GetQuestData(QuestID);
 	if (!Data) return;
 
-	GiveRewards(Data->Reward);
+	GiveRewards(Data->Reward); // 보상 지급
 
-	ActiveQuestProgress.Remove(QuestID);
-	CompletedQuests.Add(QuestID);
+	ActiveQuestProgress.Remove(QuestID); // 진행 목록 제거
+	CompletedQuests.Add(QuestID); // 완료 목록에 추가
 	TrackedQuestIDs.Remove(QuestID); // 완료된 퀘스트는 추적 해제
 
 	OnQuestCompleted.Broadcast(QuestID);
 	OnQuestTrackingChanged.Broadcast();
 }
-
-// ─── 진행도 업데이트 ─────────────────────────────────────────────────────────
 
 void UOHSMQuestComponent::NotifyEnemyKilled(FName EnemyID)
 {
@@ -128,8 +152,8 @@ void UOHSMQuestComponent::UpdateProgress(EQuestObjectiveType Type, FName TargetI
 
 	for (auto& Pair : ActiveQuestProgress)
 	{
-		const FName& QuestID       = Pair.Key;
-		FQuestProgress& Progress   = Pair.Value;
+		const FName& QuestID = Pair.Key;
+		FQuestProgress& Progress = Pair.Value;
 		const FOHSMQuestData* Data = GetQuestData(QuestID);
 		if (!Data) continue;
 
@@ -137,8 +161,7 @@ void UOHSMQuestComponent::UpdateProgress(EQuestObjectiveType Type, FName TargetI
 		{
 			const FQuestObjectiveData& Obj = Data->Objectives[i];
 			if (Obj.ObjectiveType != Type || Obj.TargetID != TargetID) continue;
-
-			// 이미 달성된 목표는 스킵
+			
 			if (Progress.Counts[i] >= Obj.RequiredCount) continue;
 
 			Progress.Counts[i] = FMath::Min(Progress.Counts[i] + Count, Obj.RequiredCount);
@@ -155,12 +178,13 @@ void UOHSMQuestComponent::UpdateProgress(EQuestObjectiveType Type, FName TargetI
 
 // ─── 보상 ────────────────────────────────────────────────────────────────────
 
+// 퀘스트 보상 지급
 void UOHSMQuestComponent::GiveRewards(const FQuestRewardData& Reward)
 {
 	AActor* Owner = GetOwner();
 	if (!Owner) return;
 
-	// 경험치
+	// 경험치 지급
 	if (Reward.RewardExp > 0)
 	{
 		if (UOHSMPlayerStatComponent* StatComp = Owner->FindComponentByClass<UOHSMPlayerStatComponent>())
@@ -231,6 +255,34 @@ void UOHSMQuestComponent::TrackQuest(FName QuestID)
 	OnQuestTrackingChanged.Broadcast();
 }
 
+void UOHSMQuestComponent::RestoreFromSave(
+	const TArray<FQuestSaveEntry>& ActiveQuestSaves,
+	const TArray<FName>&           InCompletedQuests,
+	const TArray<FName>&           InTrackedQuests)
+{
+	ActiveQuestProgress.Empty();
+	CompletedQuests.Empty();
+	TrackedQuestIDs.Empty();
+
+	for (const FName& ID : InCompletedQuests)
+	{
+		CompletedQuests.Add(ID);
+	}
+
+	for (const FQuestSaveEntry& Entry : ActiveQuestSaves)
+	{
+		if (Entry.QuestID.IsNone()) continue;
+		FQuestProgress Progress;
+		Progress.Counts = Entry.Counts;
+		ActiveQuestProgress.Add(Entry.QuestID, Progress);
+	}
+
+	TrackedQuestIDs = InTrackedQuests;
+
+	// 퀘스트 추적 UI 갱신
+	OnQuestTrackingChanged.Broadcast();
+}
+
 void UOHSMQuestComponent::UntrackQuest(FName QuestID)
 {
 	if (TrackedQuestIDs.Remove(QuestID) > 0)
@@ -239,7 +291,4 @@ void UOHSMQuestComponent::UntrackQuest(FName QuestID)
 	}
 }
 
-// 퀘스트 완료 시 추적 목록에서도 제거
-// CompleteQuest 끝에 호출
-// (기존 CompleteQuest 안에 추가)
 

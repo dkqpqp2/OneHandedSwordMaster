@@ -81,13 +81,9 @@ void UOHSMBTTask_TraceTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8*
 	
 	FVector AILocation = Enemy->GetActorLocation();
 	FVector TargetLocation = TargetActor->GetActorLocation();
-	
-	AILocation.Z = Enemy->GetHalfHeight();
-	
-	TargetLocation.Z -= Enemy->GetHalfHeight();
-	
-	// FVector::Distance : 두 위치 사이의 거리 구하는 함수.
-	float Distance = FVector::Distance(AILocation, TargetLocation);
+
+	// 공격 범위는 수평(XY) 거리만 비교 — Z 높이 차이로 인한 오판 방지
+	float Distance = FVector::Dist2D(AILocation, TargetLocation);
 	
 	Distance -= Enemy->GetCapsuleComponent()->GetScaledCapsuleRadius();
 	

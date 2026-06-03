@@ -49,7 +49,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> JumpAction;
 	
-	// 공격
+	// 기본 공격 입력
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> AttackAction;
 	
@@ -107,31 +107,31 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class AOHSMWeaponBase> CurrentWeapon;
 
-	/** 일반 공격 트레일 — 무기 소켓에 붙어있고 평소엔 비활성 */
+	/** 일반 공격 트레일 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Trail", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UNiagaraComponent> WeaponTrailComponent;
 
-	/** BP_PlayerCharacter Class Defaults 에서 일반 공격 트레일 에셋 지정 */
+	/** 트레일 에셋 (BP 지정) */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon|Trail")
 	TObjectPtr<class UNiagaraSystem> WeaponTrailSystem;
 
-	/** 스킬 전용 트레일 — 스킬마다 다른 에셋을 AnimNotifyState에서 지정 */
+	/** 스킬 트레일 컴포넌트 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Trail", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UNiagaraComponent> SkillTrailComponent;
 
 public:
-	/** AnimNotifyState_WeaponTrail 에서 호출 (일반 공격) */
+	// 트레일 활성화 (일반 공격)
 	void ActivateWeaponTrail();
 	void DeactivateWeaponTrail();
 
-	/** AnimNotifyState_SkillTrail 에서 호출 — 스킬마다 다른 에셋 전달 */
+	// 트레일 활성화 (스킬용)
 	void ActivateSkillTrail(class UNiagaraSystem* TrailSystem);
 	void DeactivateSkillTrail();
 
-	/** OHSMSlashSkill 에서 호출 — 투사체 스폰 정보를 미리 저장 */
+	// 투사체 스폰 정보 사전 저장
 	void PrepareProjectileSpawn(TSubclassOf<class AOHSMSlashProjectile> InProjectileClass, float InDamage, float InForwardOffset);
 
-	/** AnimNotify_SpawnProjectile 에서 호출 — 실제 투사체 스폰 */
+	// 투사체 실제 스폰
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void SpawnPreparedProjectile();
 
@@ -217,18 +217,26 @@ protected:
 protected:
 	void ToggleInventory();
 
+// ─── 맵 이동 데이터 유지 ──────────────────────────────────────────────────
+public:
+	// 맵 이동 전 데이터 저장
+	void SaveToGameInstance();
+
+	// 맵 이동 후 데이터 복원
+	void LoadFromGameInstance();
+
 // ─── 사망 / 리스폰 ────────────────────────────────────────────────────────
 public:
-	/** 래그돌 해제 + 지정 위치로 이동 + HP 회복 */
+	// 부활 처리
 	void Revive(FVector RespawnLocation, float HealPercent = 1.0f);
 
-	/** 인벤토리에 부활 포션이 있는지 */
+	// 부활 포션 보유 여부
 	bool HasRevivalPotion() const;
 
-	/** 인벤토리에 있는 부활 포션 개수 */
+	// 부활 포션 개수 조회
 	int32 GetRevivalPotionCount() const;
 
-	/** 부활 포션 1개 소모. 성공 시 true */
+	// 부활 포션 1개 소모
 	bool ConsumeRevivalPotion();
 
 	bool bIsDead = false;
@@ -239,29 +247,25 @@ public:
 
 // ─── 넉다운 (보스 점프 착지 등) ───────────────────────────────────────────
 public:
-	/**
-	 * LaunchCharacter 기반 넉다운.
-	 * LaunchVelocity : 날아갈 속도 벡터 (cm/s).  예) 방향 * 500 + Z * 800
-	 * 착지 후 자동으로 일어나기 몽타주를 재생합니다.
-	 */
+	// 넉다운 발동
 	UFUNCTION(BlueprintCallable, Category = "Combat|Knockdown")
 	void TriggerKnockdown(FVector LaunchVelocity);
 
-	/** 넉다운 or 일어나기 애니메이션 중이면 true */
+	// 넉다운 중 여부
 	bool IsKnockedDown() const { return bIsKnockedDown; }
 
 protected:
-	/** 착지 감지 → 일어나기 시작 */
+	// 착지 감지
 	virtual void Landed(const FHitResult& Hit) override;
 
-	/** 착지 후 일어나기 몽타주 재생 + 입력 복구 */
+	// 일어나기 몽타주 재생
 	void DoGetUp();
 
-	/** 앞으로 쓰러졌을 때 일어나기 몽타주 (BP에서 지정) */
+	// 앞 방향 일어나기 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Knockdown")
 	TObjectPtr<UAnimMontage> GetUpFrontMontage;
 
-	/** 뒤로 쓰러졌을 때 일어나기 몽타주 — 없으면 Front 로 대체 */
+	// 뒤 방향 일어나기 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Knockdown")
 	TObjectPtr<UAnimMontage> GetUpBackMontage;
 
@@ -286,7 +290,7 @@ protected:
 	void UseSkillSlot3();
 	void UseSkillSlot4();
 
-	/** 스킬 퀵슬롯 인덱스 (0~3) 의 스킬을 발동 */
+	// 스킬 퀵슬롯 발동
 	void UseSkillSlot(int32 SkillSlotIndex);
 
 	void ToggleEquipment();

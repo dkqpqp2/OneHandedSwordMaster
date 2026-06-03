@@ -36,11 +36,7 @@ public:
 	 */
 	void SetManualNavTarget(FName QuestID);
 
-	/**
-	 * 지정 퀘스트의 현재 미완료 목표 위치를 월드에서 탐색 (공개 유틸).
-	 * Talk 목표 → NPC 위치, 그 외 → 마커 위치.
-	 * @return 위치를 찾으면 true
-	 */
+	// 퀘스트 목표 위치 탐색 (Talk→NPC, 그 외→마커)
 	bool FindQuestTargetLocation(FName QuestID, FVector& OutLocation) const;
 
 protected:

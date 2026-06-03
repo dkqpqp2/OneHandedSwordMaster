@@ -4,29 +4,34 @@
 
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMPlayerStatComponent.h"
+#include "OneHandedSwordMaster/Character/Components/OHSMSkillComponent.h"
 #include "OneHandedSwordMaster/Character/Player/OHSMPlayerCharacter.h"
 
+// 스킬 히트 판정 시작
 void UAnimNotifyState_SkillHit::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-	HitActors.Empty();
+	HitActors.Empty(); // 피격 목록 초기화
 }
 
+// 매 틱 히트 판정
 void UAnimNotifyState_SkillHit::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
-	PerformSweep(MeshComp);
+	PerformSweep(MeshComp); // 스윕 판정
 }
 
+// 스킬 히트 판정 종료
 void UAnimNotifyState_SkillHit::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
-	HitActors.Empty();
+	HitActors.Empty(); // 피격 목록 정리
 }
 
+// 스윕으로 히트 판정 수행
 void UAnimNotifyState_SkillHit::PerformSweep(USkeletalMeshComponent* MeshComp)
 {
 	if (!MeshComp) return;
@@ -37,16 +42,24 @@ void UAnimNotifyState_SkillHit::PerformSweep(USkeletalMeshComponent* MeshComp)
 	UWorld* World = Owner->GetWorld();
 	if (!World) return;
 
-	// 플레이어 스탯에서 공격력 가져오기
+	// 공격력 + 스킬 배율로 최종 데미지 계산
 	float AttackPower = 50.f;
+	float SkillEffectValue = DamageMultiplier; // 기본 배율
+
 	if (AOHSMPlayerCharacter* Player = Cast<AOHSMPlayerCharacter>(Owner))
 	{
 		if (UOHSMPlayerStatComponent* StatComp = Player->GetStatComponent())
 		{
 			AttackPower = StatComp->GetAttackPower();
 		}
+		// DataTable EffectValue (스킬 데미지 배율) 읽기
+		if (UOHSMSkillComponent* SkillComp = Player->FindComponentByClass<UOHSMSkillComponent>())
+		{
+			SkillEffectValue = SkillComp->GetActiveSkillEffectValue();
+		}
 	}
-	const float ActualDamage = AttackPower * DamageMultiplier;
+	// 최종 데미지 = 플레이어 공격력 × DataTable EffectValue
+	const float ActualDamage = AttackPower * SkillEffectValue;
 
 	// 스윕 위치 — 캐릭터 전방 ForwardOffset ~ ForwardOffset+SweepDistance
 	const FVector Forward  = Owner->GetActorForwardVector();
@@ -68,11 +81,6 @@ void UAnimNotifyState_SkillHit::PerformSweep(USkeletalMeshComponent* MeshComp)
 		Params
 	);
 
-#if ENABLE_DRAW_DEBUG
-	DrawDebugSphere(World, Start, SweepRadius, 8, FColor::Orange, false, 0.1f);
-	DrawDebugSphere(World, End,   SweepRadius, 8, FColor::Orange, false, 0.1f);
-	DrawDebugLine(World, Start, End, FColor::Orange, false, 0.1f, 0, 2.f);
-#endif
 
 	for (const FHitResult& Hit : Hits)
 	{

@@ -12,6 +12,7 @@ class UTextBlock;
 class UWrapBox;
 class UOHSMCraftMaterialItem;
 class UPanelSlot;
+class UOHSMInventoryComponent;
 
 UCLASS()
 class ONEHANDEDSWORDMASTER_API UOHSMCraftInfo : public UUserWidget
@@ -28,6 +29,15 @@ public:
 	void ResetInfo();
 
 protected:
+	virtual void NativeDestruct() override;
+
+	/**
+	 * 인벤토리 변경 콜백 — SetCraftItemData에서 자동 구독.
+	 * UOHSMCraftDetailInfo 등 파생 클래스에서 override해 추가 처리 가능.
+	 */
+	UFUNCTION()
+	virtual void OnInventoryUpdated(int32 SlotIndex);
+
 	// 결과 아이템
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_ResultItem;
@@ -41,4 +51,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Craft")
 	TSubclassOf<UOHSMCraftMaterialItem> MaterialWidgetClass;
+
+private:
+	/** OnInventoryUpdated 구독 해제·재구독용 캐시 */
+	UPROPERTY()
+	TObjectPtr<UOHSMInventoryComponent> CachedInventoryComp;
 };

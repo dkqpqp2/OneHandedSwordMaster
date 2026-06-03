@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "OneHandedSwordMaster/Character/Enemy/OHSMEnemyBase.h"
+#include "OneHandedSwordMaster/Character/Enemy/Boss/OHSMBossBase.h"
 #include "OneHandedSwordMaster/Character/Components/OHSMHealthComponent.h"
 
 void UOHSMBossHpBarWidget::NativeConstruct()
@@ -14,21 +15,29 @@ void UOHSMBossHpBarWidget::NativeConstruct()
 
 	// 시작 시 숨김
 	SetVisibility(ESlateVisibility::Hidden);
+
+	// Widget Tick 활성화 문제 우회 — 타이머로 주기적 탐색
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			SearchTimerHandle,
+			this,
+			&UOHSMBossHpBarWidget::FindNearestBoss,
+			SearchInterval,
+			true   // 반복
+		);
+	}
 }
 
-void UOHSMBossHpBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+void UOHSMBossHpBarWidget::NativeDestruct()
 {
-	Super::NativeTick(MyGeometry, InDeltaTime);
-
-	// SearchInterval마다 보스 탐색
-	SearchTimer += InDeltaTime;
-	if (SearchTimer < SearchInterval)
+	// 위젯 파괴 시 타이머 정리
+	if (UWorld* World = GetWorld())
 	{
-		return;
+		World->GetTimerManager().ClearTimer(SearchTimerHandle);
 	}
-	SearchTimer = 0.0f;
 
-	FindNearestBoss();
+	Super::NativeDestruct();
 }
 
 // ============================================================
@@ -121,6 +130,18 @@ void UOHSMBossHpBarWidget::SetCurrentBoss(AOHSMEnemyBase* NewBoss)
 		NewHealth->OnDeath.AddDynamic(this, &UOHSMBossHpBarWidget::OnBossDied);
 	}
 
+	// ─── 페이즈 변경 델리게이트 구독 ───
+	if (AOHSMBossBase* Boss = Cast<AOHSMBossBase>(CurrentBoss))
+	{
+		Boss->OnPhaseChanged.AddUObject(this, &UOHSMBossHpBarWidget::OnBossPhaseChanged);
+	}
+
+	// 광폭화 텍스트 초기 숨김
+	if (TextEnrage)
+	{
+		TextEnrage->SetVisibility(ESlateVisibility::Hidden);
+	}
+
 	// ─── 보스 이름 설정 ───
 	if (TextBossName)
 	{
@@ -157,4 +178,15 @@ void UOHSMBossHpBarWidget::OnBossDied(AActor* Killer)
 {
 	// 보스 사망 → 바 숨김
 	SetCurrentBoss(nullptr);
+}
+
+void UOHSMBossHpBarWidget::OnBossPhaseChanged(int32 NewPhase)
+{
+	if (!TextEnrage) return;
+
+	if (NewPhase >= 2)
+	{
+		TextEnrage->SetText(FText::FromString(TEXT("광폭화")));
+		TextEnrage->SetVisibility(ESlateVisibility::Visible);
+	}
 }

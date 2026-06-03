@@ -37,7 +37,11 @@ protected:
 	UFUNCTION()
 	void AnimNotify_BossAreaAttack();
 
-	/** 보스 전방 지면 강타 (AnimNotify_BossGroundSlam) */
+	/** 보스 전방 지면 강타 차징 — 기모으기 프레임 (AnimNotify_BossGroundSlamCharge) */
+	UFUNCTION()
+	void AnimNotify_BossGroundSlamCharge();
+
+	/** 보스 전방 지면 강타 파동 발동 — 내려찍는 프레임 (AnimNotify_BossGroundSlam) */
 	UFUNCTION()
 	void AnimNotify_BossGroundSlam();
 };

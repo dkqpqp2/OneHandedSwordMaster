@@ -61,4 +61,46 @@ void UOHSMInventoryTooltipWidget::UpdateTooltip(const FItemData& ItemData)
 			FText::AsNumber(ItemData.SellPrice)
 		));
 	}
+
+	// 장비 스탯 표시 
+	if (StatText)
+	{
+		if (ItemData.ItemType == EItemType::Equipment)
+		{
+			FString StatStr;
+
+			if (ItemData.BonusAtk > 0.0f)
+			{
+				StatStr += FString::Printf(TEXT("공격력  +%.0f\n"), ItemData.BonusAtk);
+			}
+			if (ItemData.BonusDef > 0.0f)
+			{
+				StatStr += FString::Printf(TEXT("방어력  +%.0f\n"), ItemData.BonusDef);
+			}
+			if (ItemData.BonusMaxHp > 0.0f)
+			{
+				StatStr += FString::Printf(TEXT("최대 HP +%.0f\n"), ItemData.BonusMaxHp);
+			}
+			if (ItemData.BonusMaxMp > 0.0f)
+			{
+				StatStr += FString::Printf(TEXT("최대 MP +%.0f\n"), ItemData.BonusMaxMp);
+			}
+			
+			StatStr.TrimEndInline();
+
+			if (!StatStr.IsEmpty())
+			{
+				StatText->SetText(FText::FromString(StatStr));
+				StatText->SetVisibility(ESlateVisibility::Visible);
+			}
+			else
+			{
+				StatText->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}
+		else
+		{
+			StatText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }

@@ -25,6 +25,21 @@ void UOHSMCraftInfo::SetCraftItemData(const FOHSMCraftItemData& InData, FName In
 		}
 	}
 
+	// ── 인벤토리 변경 구독 ────────────────────────────────────────────────────
+	// 이전 컴포넌트 바인딩 해제 후 새 컴포넌트에 재구독.
+	// AddUniqueDynamic: 같은 (오브젝트, 함수명) 쌍이 이미 있으면 스킵 → 중복 방지.
+	// 파생 클래스(UOHSMCraftDetailInfo)가 NativeConstruct에서 먼저 구독해둔 경우에도
+	// UE 리플렉션이 가장 파생된 OnInventoryUpdated를 호출하므로 동작이 보장된다.
+	if (IsValid(CachedInventoryComp))
+	{
+		CachedInventoryComp->OnInventoryUpdated.RemoveAll(this);
+	}
+	if (IsValid(InvComp))
+	{
+		CachedInventoryComp = InvComp;
+		InvComp->OnInventoryUpdated.AddUniqueDynamic(this, &UOHSMCraftInfo::OnInventoryUpdated);
+	}
+
 	// 결과 아이템 정보 표시
 	if (IsValid(InvComp))
 	{
@@ -78,6 +93,23 @@ void UOHSMCraftInfo::ResetInfo()
 	{
 		Img_ResultItem->SetBrushFromTexture(nullptr);
 	}
+}
+
+void UOHSMCraftInfo::NativeDestruct()
+{
+	if (IsValid(CachedInventoryComp))
+	{
+		CachedInventoryComp->OnInventoryUpdated.RemoveAll(this);
+		CachedInventoryComp = nullptr;
+	}
+	Super::NativeDestruct();
+}
+
+void UOHSMCraftInfo::OnInventoryUpdated(int32 /*SlotIndex*/)
+{
+	// 베이스 구현: 재료 보유 수량 갱신
+	// 파생 클래스(UOHSMCraftDetailInfo)는 이를 override해 버튼 상태도 함께 갱신한다.
+	RefreshMaterialCounts();
 }
 
 void UOHSMCraftInfo::RefreshMaterialCounts()

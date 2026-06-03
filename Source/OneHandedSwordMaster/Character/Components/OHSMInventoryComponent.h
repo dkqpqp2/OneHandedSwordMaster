@@ -52,12 +52,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Data")
 	TObjectPtr<UDataTable> ItemDataTable;
 
-	/** 게임 시작 시 인벤토리에 기본으로 추가할 아이템 ID 목록 */
+	// 시작 기본 아이템 목록
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Default")
 	TArray<FName> DefaultItems;
 	
 public:
-	/** bSilent = true 이면 OnItemAdded 브로드캐스트 생략 (장비 해제 등 내부 이동 시 사용) */
+	// 아이템 추가 (bSilent=true면 알림 없음)
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	int32 AddItem(FName ItemID, int32 Count = 1, bool bSilent = false);
 	
@@ -108,4 +108,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
 	void ClearInventory();
+
+	// 저장 데이터로 슬롯 복원
+	void RestoreFromSave(const TArray<FInventorySlot>& SavedSlots);
+
+	// 전체 슬롯 반환 (저장용)
+	const TArray<FInventorySlot>& GetAllSlots() const { return Slots; }
 };

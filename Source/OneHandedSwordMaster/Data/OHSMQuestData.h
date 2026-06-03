@@ -99,3 +99,18 @@ struct FOHSMQuestData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FQuestRewardData Reward;
 };
+
+// ─── 맵 이동 시 퀘스트 진행도 저장용 ────────────────────────────────────────
+
+USTRUCT()
+struct FQuestSaveEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FName QuestID;
+
+	/** Objectives 배열 순서에 대응하는 현재 카운트 */
+	UPROPERTY()
+	TArray<int32> Counts;
+};

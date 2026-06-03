@@ -71,6 +71,9 @@ protected:
 	TObjectPtr<class UOHSMQuestTrackerWidget> QuestTracker;
 
 	void InitializeHUD();
+
+public:
+	/** 맵 전환 후 새 QuickSlotComp / SkillComp 에 재연결할 때 호출 */
 	void InitializeQuickSlots();
 
 public:

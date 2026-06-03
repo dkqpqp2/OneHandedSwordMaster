@@ -9,15 +9,16 @@ UOHSMInventoryComponent::UOHSMInventoryComponent()
 
 }
 
+// 슬롯 초기화 및 기본 아이템 추가
 void UOHSMInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	Slots.SetNum(MaxSlotCount);
+
+	Slots.SetNum(MaxSlotCount); // 슬롯 배열 크기 설정
 
 	for (int32 i = 0; i < Slots.Num(); ++i)
 	{
-		Slots[i].ItemID = FName(NAME_None);
+		Slots[i].ItemID = FName(NAME_None); // 슬롯 비움
 		Slots[i].Count = 0;
 	}
 
@@ -26,23 +27,24 @@ void UOHSMInventoryComponent::BeginPlay()
 	{
 		if (!ItemID.IsNone())
 		{
-			AddItem(ItemID, 1, true);
+			AddItem(ItemID, 1, true); // 기본 아이템 지급
 		}
 	}
 }
 
+// 아이템 추가 처리
 int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count, bool bSilent)
 {
 	if (ItemID.IsNone() || Count <= 0)
 	{
 		return 0;
 	}
-
+	
 	if (!ItemDataTable)
 	{
 		return 0;
 	}
-
+	
 	const FItemData* ItemData = ItemDataTable->FindRow<FItemData>(ItemID, TEXT("AddItem"));
 	if (!ItemData)
 	{
@@ -50,7 +52,7 @@ int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count, bool bSilent)
 	}
 
 	int32 RemainingCount = Count;
-	const int32 MaxStack = ItemData->MaxStackSize;
+	const int32 MaxStack = ItemData->MaxStackSize; // 최대 스택 수
 
 	// 기존 슬롯에 추가 시도
 	for (int32 i = 0; i < Slots.Num() && RemainingCount > 0; ++i)
@@ -94,6 +96,7 @@ int32 UOHSMInventoryComponent::AddItem(FName ItemID, int32 Count, bool bSilent)
 	return ActuallyAdded;
 }
 
+// 아이템 제거 처리
 int32 UOHSMInventoryComponent::RemoveItem(FName ItemID, int32 Count)
 {
 	if (ItemID.IsNone() || Count <= 0)
@@ -155,18 +158,19 @@ bool UOHSMInventoryComponent::RemoveItemFromSlot(int32 SlotIndex, int32 Count)
 	return true;
 }
 
+// 슬롯 교환
 bool UOHSMInventoryComponent::SwapSlots(int32 FromIndex, int32 ToIndex)
 {
 	if (!Slots.IsValidIndex(FromIndex) || !Slots.IsValidIndex(ToIndex))
 	{
 		return false;
 	}
-	
+
 	if (FromIndex == ToIndex)
 	{
 		return false;
 	}
-	
+
 	FInventorySlot Temp = Slots[FromIndex];
 	Slots[FromIndex] = Slots[ToIndex];
 	Slots[ToIndex] = Temp;
@@ -303,6 +307,28 @@ const FItemData* UOHSMInventoryComponent::GetItemData(FName ItemID) const
 	}
     
 	return ItemData;
+}
+
+void UOHSMInventoryComponent::RestoreFromSave(const TArray<FInventorySlot>& SavedSlots)
+{
+	// 현재 슬롯 초기화
+	for (FInventorySlot& Slot : Slots)
+	{
+		Slot.SlotClear();
+	}
+
+	// 저장된 슬롯 복원 (슬롯 수 초과분은 무시)
+	const int32 RestoreCount = FMath::Min(SavedSlots.Num(), Slots.Num());
+	for (int32 i = 0; i < RestoreCount; ++i)
+	{
+		Slots[i] = SavedSlots[i];
+	}
+
+	// UI 전체 갱신
+	for (int32 i = 0; i < Slots.Num(); ++i)
+	{
+		OnInventoryUpdated.Broadcast(i);
+	}
 }
 
 void UOHSMInventoryComponent::ClearInventory()

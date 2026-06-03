@@ -33,12 +33,12 @@ protected:
 	virtual void BeginPlay() override;
 	
 protected:
-	/** 모든 스탯 저장 */
+	// 스탯 맵
 	UPROPERTY()
 	TMap<EPlayerStatType, FPlayerStat> PlayerStats;
 
 protected:
-	/** 레벨별 스탯 DataTable */
+	// 레벨 스탯 테이블
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats")
 	TObjectPtr<UDataTable> PlayerStatTable;
 
@@ -47,37 +47,37 @@ public:
 	FOnHpChangedDelegate OnHpChanged;
 	FOnManaChangedDelegate OnManaChanged;
 
-	/** 버프/장비 스탯 변경 시 브로드캐스트 — 장비창·HUD 갱신용 */
+	// 스탯 변경 알림
 	FOnStatChanged OnStatChanged;
 
-	/** 레벨업 이벤트 */
+	// 레벨업 이벤트
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnLevelUp OnLevelUp;
-    
-	/** 경험치 변경 이벤트 */
+
+	// 경험치 변경 이벤트
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnExpChanged OnExpChanged;
 	
 	
 	// ==================== HP 관리 ====================
 public:
-	/** 최대 HP (DataTable에서) */
+	// 최대 HP
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetMaxHp() const;
-    
-	/** 현재 HP */
+
+	// 현재 HP
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetCurrentHp() const { return CurrentHp; }
-    
-	/** 피해 적용 */
+
+	// 피해 적용
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	float ApplyDamage(float InDamage, AActor* Attacker = nullptr);
-    
-	/** 회복 */
+
+	// HP 회복
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	void Heal(float Amount);
 
-protected:
+	// HP 직접 설정 (복원·외부 보정용)
 	void SetHp(float NewHp, float Damage = 0.0f, AActor* Attacker = nullptr);
 	
 	// 디스크에 저장할 필요가 없는 데이터는 Transient 사용
@@ -107,6 +107,9 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	void AddExperience(int32 Amount);
+
+	// 저장 데이터로 스탯 복원
+	void RestoreFromSave(int32 InLevel, int32 InExp, float InHp = -1.f, float InMana = -1.f);
     
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	void LevelUp();
@@ -116,6 +119,9 @@ public:
     
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetExpPercent() const;
+
+	/** 현재 경험치 (저장용) */
+	int32 GetCurrentExp_Save() const { return CurrentExp; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Level")
@@ -141,19 +147,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetDefensePower() const { return GetStat(EPlayerStatType::Defense); }
 
-	/** 장비 보너스 추가 (스탯에 EquipmentBonus 누적) */
+	// 장비 보너스 추가
 	UFUNCTION(BlueprintCallable, Category = "Stats|Equipment")
 	void AddEquipmentBonus(EPlayerStatType StatType, float Amount);
 
-	/** 장비 보너스 제거 */
+	// 장비 보너스 제거
 	UFUNCTION(BlueprintCallable, Category = "Stats|Equipment")
 	void RemoveEquipmentBonus(EPlayerStatType StatType, float Amount);
 
-	/** 임시 버프 추가 (스킬·아이템 효과) */
+	// 임시 버프 추가
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void AddTemporaryBonus(EPlayerStatType StatType, float Amount);
 
-	/** 임시 버프 제거 */
+	// 임시 버프 제거
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void RemoveTemporaryBonus(EPlayerStatType StatType, float Amount);
 

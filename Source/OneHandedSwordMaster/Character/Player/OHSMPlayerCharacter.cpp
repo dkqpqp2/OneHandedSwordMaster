@@ -32,9 +32,10 @@
 #include "OneHandedSwordMaster/Character/UI/OHSMManaBar.h"
 #include "OneHandedSwordMaster/Character/UI/OHSMExpBar.h"
 #include "OneHandedSwordMaster/Character/Skills/OHSMSlashProjectile.h"
+#include "OneHandedSwordMaster/Core/OHSMGameInstance.h"
 
 
-// Sets default values
+// 기본값 초기화
 AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick         = true;
@@ -126,6 +127,7 @@ AOHSMPlayerCharacter::AOHSMPlayerCharacter()
 	SkillTrailComponent->SetAutoActivate(false);
 }
 
+// 컴포넌트 초기화 후
 void AOHSMPlayerCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -139,7 +141,7 @@ void AOHSMPlayerCharacter::PostInitializeComponents()
 	SkillComponent->OnSkillLearned.AddUObject(this, &AOHSMPlayerCharacter::OnSkillLearnedForCombo);
 }
 
-// Called when the game starts or when spawned
+// 게임 시작 시 호출
 void AOHSMPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -168,17 +170,27 @@ void AOHSMPlayerCharacter::BeginPlay()
 		}
 	}
 
+	// GameInstance 에 저장된 데이터가 있으면 복원, 없으면 새 게임 초기화
+	if (UOHSMGameInstance* GI = GetGameInstance<UOHSMGameInstance>())
+	{
+		if (GI->HasPlayerData())
+		{
+			// 맵 이동 복원 — 기본 장착·스킬포인트 초기화 건너뜀
+			LoadFromGameInstance();
+			return;
+		}
+	}
+
+	// ─── 새 게임 초기화 (GameInstance 데이터 없을 때만) ───────────────────────
+
 	// CurrentWeapon 스폰 이후에 기본 장착 아이템 적용 (무기 메시 교체 가능하도록)
 	if (EquipmentComponent)
 	{
 		EquipmentComponent->InitializeDefaultEquipment();
 	}
 
-	// 레벨 1 시작 시 초기 스킬포인트 3개 지급
-	if (SkillComponent)
-	{
-		SkillComponent->AddSkillPoints(3);
-	}
+	// 레벨 1 시작 시 스킬포인트 0개 (레벨업 시에만 지급)
+	// if (SkillComponent) SkillComponent->AddSkillPoints(3);
 }
 
 
@@ -188,7 +200,7 @@ void AOHSMPlayerCharacter::Tick(float DeltaSeconds)
 	// LaunchCharacter 방식은 CharacterMovement 가 캡슐을 직접 움직이므로 Tick 처리 불필요
 }
 
-// Called to bind functionality to input
+// 입력 바인딩 설정
 void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -245,24 +257,26 @@ void AOHSMPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	}
 }
 
+// 데미지 수신 처리
 float AOHSMPlayerCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
 	Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	PlayerStat->ApplyDamage(Damage);
+	PlayerStat->ApplyDamage(Damage); // 스탯에 데미지 적용
 
 	return Damage;
 }
 
+// 무기 장착
 void AOHSMPlayerCharacter::EquipWeapon(class AOHSMWeaponBase* Weapon)
 {
 	if (!Weapon)
 	{
 		return;
 	}
-	CurrentWeapon = Weapon;
-	Weapon->EquipToCharacter(this);
+	CurrentWeapon = Weapon; // 현재 무기 교체
+	Weapon->EquipToCharacter(this); // 캐릭터에 부착
 }
 
 void AOHSMPlayerCharacter::ToggleInventory()
@@ -302,6 +316,7 @@ void AOHSMPlayerCharacter::ToggleSkillPanel()
 	PlayerController->ToggleSkillPanel();
 }
 
+// 레벨업 처리
 void AOHSMPlayerCharacter::OnLevelUp(int32 NewLevel, int32 OldLevel)
 {
 	if (!SkillComponent)
@@ -309,7 +324,7 @@ void AOHSMPlayerCharacter::OnLevelUp(int32 NewLevel, int32 OldLevel)
 		return;
 	}
 
-	SkillComponent->AddSkillPoints(3);
+	SkillComponent->AddSkillPoints(3); // 스킬포인트 3 지급
 }
 
 void AOHSMPlayerCharacter::OnSkillLearnedForCombo(FName SkillID)
@@ -337,35 +352,44 @@ void AOHSMPlayerCharacter::OnSkillLearnedForCombo(FName SkillID)
 void AOHSMPlayerCharacter::Interact()
 {
 	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
-	if (!PlayerController) return;
+	if (!PlayerController)
+	{
+		return;
+	}
 	PlayerController->TryInteract();
 }
 
 void AOHSMPlayerCharacter::AutoMove()
 {
 	AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController());
-	if (!PlayerController) return;
+	if (!PlayerController)
+	{
+		return;
+	}
 	PlayerController->TriggerAutoMove();
 }
 
 void AOHSMPlayerCharacter::Move(const FInputActionValue& Value)
 {
-	// 입력 값 (Vector2D)
+	if (AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(Controller))
+	{
+		if (PlayerController->IsAutoMoving())
+		{
+			PlayerController->StopAutoMove();
+		}
+	}
+	
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
-		// 컨트롤러의 회전에서 Yaw만 가져오기
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// 전방 방향 벡터
+		
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-
-		// 우측 방향 벡터
+		
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// 이동 입력 추가
+		
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 	}
@@ -384,27 +408,29 @@ void AOHSMPlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
+// 기본 공격 실행
 void AOHSMPlayerCharacter::Attack()
 {
-	APlayerController* PC = GetController<APlayerController>();
-	if (PC && PC->bShowMouseCursor)
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (PlayerController && PlayerController->bShowMouseCursor) // UI 열림 중 공격 차단
 	{
 		return;
 	}
 
 	if (CombatComponent)
 	{
-		CombatComponent->PerformBasicAttack();
+		CombatComponent->PerformBasicAttack(); // 콤보 공격 처리
 	}
 }
 
+// 사망 처리
 void AOHSMPlayerCharacter::SetDead()
 {
-	if (bIsDead)
+	if (bIsDead) // 중복 호출 방지
 	{
 		return;
 	}
-	bIsDead = true;
+	bIsDead = true; // 사망 플래그 설정
 
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (MeshComp)
@@ -433,9 +459,9 @@ void AOHSMPlayerCharacter::SetDead()
 	}
 
 	// 입력 비활성화
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
-		DisableInput(PC);
+		DisableInput(PlayerController);
 	}
 
 	// 이 플레이어를 타겟으로 하는 모든 적 타겟 해제 → Idle 복귀
@@ -454,9 +480,9 @@ void AOHSMPlayerCharacter::SetDead()
 	}
 
 	// 컨트롤러에 사망 통보 → 사망 화면 표시
-	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetController()))
+	if (AOHSMPlayerController* PlayerController = Cast<AOHSMPlayerController>(GetController()))
 	{
-		PC->HandlePlayerDeath(GetRevivalPotionCount());
+		PlayerController->HandlePlayerDeath(GetRevivalPotionCount());
 	}
 }
 
@@ -481,6 +507,143 @@ bool AOHSMPlayerCharacter::ConsumeRevivalPotion()
 		return false;
 	}
 	return InventoryComponent->RemoveItem(RevivalPotionID, 1) > 0;
+}
+
+// ─── 맵 이동 데이터 유지 ─────────────────────────────────────────────────────
+
+void AOHSMPlayerCharacter::SaveToGameInstance()
+{
+	UOHSMGameInstance* GI = GetGameInstance<UOHSMGameInstance>();
+	if (!GI) return;
+
+	FPlayerPersistData Data;
+
+	// 스탯
+	if (PlayerStat)
+	{
+		Data.Level = PlayerStat->GetLevel();
+		Data.Exp   = PlayerStat->GetCurrentExp_Save(); // 아래에서 추가
+		Data.Hp    = PlayerStat->GetCurrentHp();
+		Data.Mana  = PlayerStat->GetCurrentMana();
+	}
+
+	// 스킬
+	if (SkillComponent)
+	{
+		Data.LearnedSkills = SkillComponent->GetLearnedSkillIDs();
+		Data.SkillPoints   = SkillComponent->GetAvailableSkillPoints();
+	}
+
+	// 인벤토리
+	if (InventoryComponent)
+	{
+		Data.InventorySlots = InventoryComponent->GetAllSlots();
+	}
+
+	// 장비
+	if (EquipmentComponent)
+	{
+		Data.EquippedItems = EquipmentComponent->GetAllEquippedItems();
+	}
+
+	// 퀵슬롯 (포션 0~3, 스킬 4~7)
+	if (QuickSlotComponent)
+	{
+		for (int32 i = 0; i < UOHSMQuickSlotComponent::TotalSlotCount; ++i)
+		{
+			Data.QuickSlots.Add(QuickSlotComponent->GetSlotItemID(i));
+		}
+	}
+
+	// 퀘스트
+	if (QuestComponent)
+	{
+		// 진행 중 퀘스트
+		for (const auto& Pair : QuestComponent->GetActiveQuestProgress())
+		{
+			FQuestSaveEntry Entry;
+			Entry.QuestID = Pair.Key;
+			Entry.Counts  = Pair.Value.Counts;
+			Data.ActiveQuests.Add(Entry);
+		}
+
+		// 완료 퀘스트
+		for (const FName& ID : QuestComponent->GetCompletedQuestIDs())
+		{
+			Data.CompletedQuests.Add(ID);
+		}
+
+		// 추적 퀘스트
+		Data.TrackedQuests = QuestComponent->GetTrackedQuestIDs();
+	}
+
+	GI->SavePlayerData(Data);
+}
+
+void AOHSMPlayerCharacter::LoadFromGameInstance()
+{
+	UOHSMGameInstance* GI = GetGameInstance<UOHSMGameInstance>();
+	if (!GI || !GI->HasPlayerData()) return;
+
+	const FPlayerPersistData& Data = GI->GetPlayerData();
+
+	// 1. 스탯 복원 (DataTable 재적용 포함)
+	if (PlayerStat)
+	{
+		PlayerStat->RestoreFromSave(Data.Level, Data.Exp, Data.Hp, Data.Mana);
+	}
+
+	// 2. 스킬 복원 (패시브 효과 재적용 포함)
+	if (SkillComponent)
+	{
+		SkillComponent->RestoreFromSave(Data.LearnedSkills, Data.SkillPoints);
+	}
+
+	// 3. 인벤토리 복원 (장비보다 먼저 — 장비 복원 시 인벤토리 접근 없음)
+	if (InventoryComponent)
+	{
+		InventoryComponent->RestoreFromSave(Data.InventorySlots);
+	}
+
+	// 4. 장비 복원 (스탯 보너스·비주얼 재적용)
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->RestoreFromSave(Data.EquippedItems);
+	}
+
+	// 4-1. 맵 전환 시 항상 만피로 입장
+	// (장비 보너스가 반영된 최종 MaxHp 기준)
+	if (PlayerStat)
+	{
+		PlayerStat->SetHp(PlayerStat->GetMaxHp());
+	}
+
+	// 5. 퀵슬롯 복원 (포션/스킬 배정)
+	if (QuickSlotComponent && Data.QuickSlots.Num() == UOHSMQuickSlotComponent::TotalSlotCount)
+	{
+		for (int32 i = 0; i < UOHSMQuickSlotComponent::TotalSlotCount; ++i)
+		{
+			QuickSlotComponent->AssignItem(i, Data.QuickSlots[i]);
+		}
+	}
+
+	// 6. 퀘스트 복원
+	if (QuestComponent)
+	{
+		QuestComponent->RestoreFromSave(
+			Data.ActiveQuests,
+			Data.CompletedQuests,
+			Data.TrackedQuests);
+	}
+
+	// 사용한 데이터 초기화 (재진입 방지)
+	GI->ClearPlayerData();
+
+	// 위젯 재연결 — PC::BeginPlay 타이밍에 따라 연결 안 됐을 수 있으므로 강제 갱신
+	if (AOHSMPlayerController* PC = Cast<AOHSMPlayerController>(GetController()))
+	{
+		PC->RefreshWidgetConnections();
+	}
 }
 
 void AOHSMPlayerCharacter::Revive(FVector RespawnLocation, float HealPercent)
@@ -537,6 +700,25 @@ void AOHSMPlayerCharacter::Revive(FVector RespawnLocation, float HealPercent)
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		EnableInput(PC);
+	}
+
+	// 부활 시 살아있는 보스(또는 Aggressive 적)에게 즉시 타겟 재설정
+	// → 감지 범위 안에 들어올 때까지 기다리지 않고 바로 추적 시작
+	for (TActorIterator<AOHSMEnemyBase> It(GetWorld()); It; ++It)
+	{
+		AOHSMEnemyBase* Enemy = *It;
+		if (!IsValid(Enemy) || Enemy->IsDead()) continue;
+
+		// 보스는 무조건 재타겟, 일반 Aggressive 적은 LeashRange 이내일 때만
+		const bool bIsBossEnemy = Enemy->bIsBoss;
+		if (!bIsBossEnemy)
+		{
+			const float Dist = FVector::Dist2D(Enemy->GetActorLocation(), GetActorLocation());
+			if (Dist > Enemy->LeashRange) continue;
+		}
+
+		Enemy->SetTarget(this);
+		Enemy->SetAIState(EEnemyAIState::Run);
 	}
 }
 
@@ -612,11 +794,12 @@ void AOHSMPlayerCharacter::UseSkillSlot(int32 SkillSlotIndex)
 	SkillComponent->ActivateSkill(SkillID);
 }
 
+// 경험치 추가
 void AOHSMPlayerCharacter::AddExp(int32 Amount)
 {
 	if (PlayerStat)
 	{
-		PlayerStat->AddExperience(Amount);
+		PlayerStat->AddExperience(Amount); // 경험치 적용
 	}
 }
 
@@ -633,6 +816,17 @@ void AOHSMPlayerCharacter::TriggerKnockdown(FVector LaunchVelocity)
 
 	GetWorldTimerManager().ClearTimer(KnockdownGetUpTimer);
 	GetWorldTimerManager().ClearTimer(GetUpInputTimer);
+
+	// 진행 중인 스킬·공격 몽타주를 즉시 종료한다.
+	// → OHSMSkillBase::OnMontageEnded가 MOVE_None → MOVE_Walking 복구를 처리하고,
+	//   CombatComponent도 MaxWalkSpeed 잠금을 해제한 뒤 LaunchCharacter를 실행한다.
+	StopAnimMontage();
+
+	// 콤보 이동 잠금(MaxWalkSpeed=0) 즉시 해제
+	if (CombatComponent)
+	{
+		CombatComponent->ResetCombo();
+	}
 
 	// 입력 비활성화 (날아가는 동안 조작 불가)
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))

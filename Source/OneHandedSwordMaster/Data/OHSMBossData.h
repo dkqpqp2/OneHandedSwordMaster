@@ -47,10 +47,27 @@ struct FOHSMBossAttackPattern : public FTableRowBase
 		meta = (ClampMin = "0"))
 	float Damage = 40.f;
 
-	/** 공격이 유효한 거리 (BTTask에서 이 거리 이내일 때만 선택) */
+	/**
+	 * 공격 유효 거리.
+	 * - 근접 패턴 (Normal / Area / GroundSlam) : 최대 사거리
+	 *     → 플레이어가 이 거리 이내일 때만 선택
+	 * - 원거리 패턴 (Jump / Projectile)        : 최소 사거리
+	 *     → 플레이어가 이 거리 이상일 때만 선택
+	 * - 0 : 거리 제한 없음
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern",
 		meta = (ClampMin = "0"))
 	float AttackRange = 250.f;
+
+	/**
+	 * 원거리 패턴 전용 최대 사거리 (0 = 제한 없음).
+	 * AttackRange ≤ 거리 ≤ MaxAttackRange 범위에서만 원거리 패턴 선택.
+	 * 예) Jump: AttackRange=400, MaxAttackRange=900
+	 *     → 너무 멀면 쫓아가고, 적당한 거리에서만 점프 공격 사용.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern",
+		meta = (ClampMin = "0"))
+	float MaxAttackRange = 0.f;
 
 	/** 패턴 선택 가중치 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern",
@@ -107,25 +124,40 @@ struct FOHSMBossAttackPattern : public FTableRowBase
 	float JumpMinRange = 400.f;
 
 	// ─── ⑤ 전방 지면 강타 (GroundSlam) ────────────────────────────────
-	/** 강타 전방 길이 (cm) */
+	/** 마지막 파동의 최대 반경 (cm) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern|GroundSlam",
 		meta = (ClampMin = "100",
 			EditCondition = "AttackType == EBossAttackType::GroundSlam"))
-	float ForwardSlamLength = 500.f;
+	float ForwardSlamLength = 600.f;
 
-	/** 강타 좌우 폭 (cm) */
+	/**
+	 * 부채꼴 반각도 (°). 전방 기준 좌우 각도.
+	 * 60 → 총 120° 부채꼴 / 90 → 반원
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern|GroundSlam",
-		meta = (ClampMin = "50",
+		meta = (ClampMin = "10", ClampMax = "180",
 			EditCondition = "AttackType == EBossAttackType::GroundSlam"))
-	float ForwardSlamWidth = 250.f;
+	float ForwardSlamAngle = 60.f;
+
+	/** 파동 횟수 (펑 펑 펑) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern|GroundSlam",
+		meta = (ClampMin = "1", ClampMax = "5",
+			EditCondition = "AttackType == EBossAttackType::GroundSlam"))
+	int32 SlamWaveCount = 3;
+
+	/** 파동 간격 (초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pattern|GroundSlam",
+		meta = (ClampMin = "0.05",
+			EditCondition = "AttackType == EBossAttackType::GroundSlam"))
+	float SlamWaveInterval = 0.25f;
 
 	FOHSMBossAttackPattern()
 		: Phase(0), AttackType(EBossAttackType::Normal)
 		, AttackMontage(nullptr)
-		, Damage(40.f), AttackRange(250.f), Weight(1.f), Cooldown(3.f)
+		, Damage(40.f), AttackRange(250.f), MaxAttackRange(0.f), Weight(1.f), Cooldown(3.f)
 		, AreaRadius(400.f)
 		, ProjectileSpeed(1000.f), ProjectileGravityScale(0.7f), ProjectileImpactRadius(150.f)
 		, JumpDuration(0.8f), JumpLandingRadius(350.f), JumpMinRange(400.f)
-		, ForwardSlamLength(500.f), ForwardSlamWidth(250.f)
+		, ForwardSlamLength(600.f), ForwardSlamAngle(60.f), SlamWaveCount(3), SlamWaveInterval(0.25f)
 	{}
 };

@@ -17,7 +17,7 @@ bool UOHSMTreeItemEntry::HasChildren() const
 	return TreeChildren.Num() > 0;
 }
 
-TArray<UOHSMTreeItemEntry*> UOHSMTreeItemEntry::GetAllChildren() const
+const TArray<TObjectPtr<UOHSMTreeItemEntry>>& UOHSMTreeItemEntry::GetAllChildren() const
 {
 	return TreeChildren;
 }

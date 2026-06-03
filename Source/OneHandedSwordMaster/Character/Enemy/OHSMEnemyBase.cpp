@@ -53,7 +53,21 @@ AOHSMEnemyBase::AOHSMEnemyBase()
 	
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	
+	static ConstructorHelpers::FClassFinder<AOHSMPickupItem> ItemRef(TEXT("/Script/Engine.Blueprint'/Game/OneHandedSwordMaster/Item/BP_OHSMPickupItem.BP_OHSMPickupItem_C'"));
 
+	if (ItemRef.Class != nullptr)
+	{
+		PickupItemClass = ItemRef.Class;
+	}
+
+	// 데미지 숫자 위젯 기본값 설정 — 보스 포함 모든 적에 자동 적용
+	// Blueprint에서 직접 지정한 경우 그 값이 우선됨
+	static ConstructorHelpers::FClassFinder<UOHSMDamageNumberWidget> DmgNumRef(
+		TEXT("/Game/OneHandedSwordMaster/UI/WBP_DamageNumber.WBP_DamageNumber_C"));
+	if (DmgNumRef.Class && HealthComponent)
+	{
+		HealthComponent->DamageNumberWidgetClass = DmgNumRef.Class;
+	}
 }
 
 void AOHSMEnemyBase::BeginPlay()
@@ -144,48 +158,6 @@ void AOHSMEnemyBase::Tick(float DeltaTime)
 		}
 	}
 
-#if ENABLE_DRAW_DEBUG
-	// 홈 위치에 구체 그리기
-	DrawDebugSphere(
-		GetWorld(),
-		HomeLocation,
-		50.0f,
-		12,
-		FColor::Green,
-		false,
-		0.1f
-	);
-
-	// 리쉬 범위 표시
-	DrawDebugCircle(
-		GetWorld(),
-		HomeLocation,
-		LeashRange,
-		64,
-		IsOutOfLeashRange() ? FColor::Red : FColor::Yellow,
-		false,
-		0.1f,
-		0,
-		2.0f,
-		FVector(0, 1, 0),
-		FVector(1, 0, 0)
-	);
-
-	// 현재 위치에서 홈까지 선
-	if (TargetActor)
-	{
-		DrawDebugLine(
-			GetWorld(),
-			GetActorLocation(),
-			HomeLocation,
-			IsOutOfLeashRange() ? FColor::Red : FColor::Green,
-			false,
-			0.1f,
-			0,
-			2.0f
-		);
-	}
-#endif
 }
 
 void AOHSMEnemyBase::SetTarget(AActor* NewTarget)
@@ -243,9 +215,6 @@ void AOHSMEnemyBase::PerformAttack(bool bIsAreaAttack, float Radius, AActor* Hit
 			);
 		}
 
-#if WITH_EDITOR
-		DrawDebugSphere(GetWorld(), OriginLocation, Radius, 16, FColor::Red, false, 1.0f);
-#endif
 	}
 	else
 	{
@@ -294,15 +263,16 @@ bool AOHSMEnemyBase::IsInAttackRange() const
 	return Distance <= AttackRange;
 }
 
+// AI 상태 변경
 void AOHSMEnemyBase::SetAIState(EEnemyAIState NewState)
  {
  	if (CurrentState == NewState)
  	{
  		return;
  	}
- 
- 	CurrentState = NewState;
-	ChangeAIAnimType((uint8)NewState);
+
+ 	CurrentState = NewState; // 상태 갱신
+	ChangeAIAnimType((uint8)NewState); // 애님 동기화
 
  	UE_LOG(LogTemp, Log, TEXT("[Enemy] %s - 상태 변경: %d"), *GetName(), (int32)NewState);
  
@@ -339,15 +309,16 @@ bool AOHSMEnemyBase::IsOutOfLeashRange() const
 	return DistanceFromHome > LeashRange;
 }
 
+// 홈 위치로 귀환
 void AOHSMEnemyBase::ReturnToHome()
 {
-	TargetActor = nullptr;
-	
+	TargetActor = nullptr; // 타겟 해제
+
 	SetAIState(EEnemyAIState::Patrol);
-	
+
 	if (bHealOnLeash && HealthComponent)
 	{
-		HealthComponent->Heal(HealthComponent->GetMaxHealth());
+		HealthComponent->Heal(HealthComponent->GetMaxHealth()); // HP 완전 회복
 	}
 }
 
@@ -370,7 +341,6 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 			continue;
 		}
 		
-		// 쿨다운 체크
 		if (Pattern->Cooldown > 0.0f)
 		{
 			float* LastUseTime = SkillCooldowns.Find(RowName);
@@ -388,8 +358,7 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 	{
 		return nullptr;
 	}
-
-	// 가중치 기반 랜덤 선택
+	
 	float RandomValue = FMath::FRandRange(0.0f, TotalWeight);
 	float CurrentWeight = 0.0f;
 
@@ -410,7 +379,7 @@ struct FEnemyAttackPattern* AOHSMEnemyBase::SelectAttackPattern()
 	}
 
 	CurrentAttackPattern = AvailablePatterns[0].Value;
-	// 만약을 위해
+	
 	return CurrentAttackPattern;
 }
 
@@ -441,16 +410,17 @@ void AOHSMEnemyBase::OnDetectionOverlap(UPrimitiveComponent* OverlappedComponent
 	}
 }
 
+// 적 사망 처리
 void AOHSMEnemyBase::OnDeath(AActor* Killer)
 {
-	UE_LOG(LogTemp, Error, TEXT("[Enemy] %s - 💀 사망!"), *GetName());
+	UE_LOG(LogTemp, Error, TEXT("[Enemy] %s - 사망!"), *GetName());
 
-	SetAIState(EEnemyAIState::Dead);
+	SetAIState(EEnemyAIState::Dead); // 사망 상태 전환
 
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{
-		AIController->StopMovement();
-		AIController->BrainComponent->StopLogic(TEXT("Dead"));
+		AIController->StopMovement(); // 이동 중지
+		AIController->BrainComponent->StopLogic(TEXT("Dead")); // AI 로직 정지
 	}
 
 	// 충돌 비활성화
@@ -487,12 +457,19 @@ void AOHSMEnemyBase::OnDeath(AActor* Killer)
 		}
 
 		// 퀘스트 처치 목표 진행도 업데이트
+		UE_LOG(LogTemp, Warning, TEXT("[Quest] %s 사망 — EnemyID: '%s'"),
+			*GetName(), *EnemyID.ToString());
 		if (!EnemyID.IsNone())
 		{
 			if (UOHSMQuestComponent* QuestComp = PlayerChar->GetQuestComponent())
 			{
 				QuestComp->NotifyEnemyKilled(EnemyID);
+				UE_LOG(LogTemp, Warning, TEXT("[Quest] NotifyEnemyKilled('%s') 호출 완료"), *EnemyID.ToString());
 			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest] EnemyID 미설정 — 퀘스트 처치 목표 반영 안 됨. 블루프린트에서 EnemyID 를 설정해주세요."));
 		}
 	}
 

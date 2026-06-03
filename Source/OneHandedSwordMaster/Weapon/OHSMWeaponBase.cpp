@@ -146,12 +146,6 @@ void AOHSMWeaponBase::PerformTrace()
 		QueryParams
 	);
 	
-	#if ENABLE_DRAW_DEBUG
-		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
-	DrawDebugLine(GetWorld(), Start, End, DrawColor, false, 0.1f, 0, 2.0f);
-	DrawDebugSphere(GetWorld(), Start, TraceRadius, 8, DrawColor, false, 0.1f);
-	DrawDebugSphere(GetWorld(), End, TraceRadius, 8, DrawColor, false, 0.1f);
-	#endif
 	
 	if (bHit)
 	{
@@ -223,16 +217,6 @@ void AOHSMWeaponBase::OnHitDetected(AActor* HitActor, const FHitResult& HitResul
 		HealthComp->TakeDamage(ActualDamage, Owner);
 	}
 	
-	// 디버그 구체
-	DrawDebugSphere(
-		GetWorld(),
-		HitResult.ImpactPoint,
-		20.0f,
-		12,
-		FColor::Red,
-		false,
-		0.5f
-	);
 }
 
 AActor* AOHSMWeaponBase::GetWeaponOwner() const
